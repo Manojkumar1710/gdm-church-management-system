@@ -8,8 +8,6 @@ backend/src/main/resources/application-prod.yml
 # Real application configuration
 backend/src/main/resources/application.yml
 
-# Local environment variables
-backend/.env
 
 # ── Java / Maven ───────────────────────────────────────────
 backend/target/
@@ -37,3 +35,6 @@ Thumbs.db
 # ── Logs ───────────────────────────────────────────────────
 *.log
 logs/
+
+# Runtime uploaded files
+backend/uploads/
