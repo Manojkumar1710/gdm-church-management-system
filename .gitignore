@@ -1,0 +1,39 @@
+# ── Secrets & environment ──────────────────────────────────
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-prod.yml
+# Real application configuration
+backend/src/main/resources/application.yml
+
+# Local environment variables
+backend/.env
+
+# ── Java / Maven ───────────────────────────────────────────
+backend/target/
+*.class
+*.jar
+*.war
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ── Node / npm ─────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── IDEs ───────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ───────────────────────────────────────────────────
+*.log
+logs/
