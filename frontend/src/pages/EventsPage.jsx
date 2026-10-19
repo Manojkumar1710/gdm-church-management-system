@@ -6,8 +6,11 @@ import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import SectionHeader from '../components/SectionHeader';
 import { CalendarIcon } from '@heroicons/react/24/outline';
+import CrossDivider from '../components/ornaments/CrossDivider';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function EventsPage() {
+  const { t, dateLocale } = useLanguage();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,7 +26,7 @@ export default function EventsPage() {
         setTotalPages(data.totalPages);
         setPage(p);
       })
-      .catch(() => setError('Unable to load events.'))
+      .catch(() => setError(t('events.loadError')))
       .finally(() => setLoading(false));
   };
 
@@ -31,7 +34,8 @@ export default function EventsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-      <SectionHeader title="Events" subtitle="Come together in worship and community" />
+      <SectionHeader title={t('events.title')} subtitle={t('events.subtitle')} />
+      <CrossDivider className="mb-8" opacity={0.3} />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -40,7 +44,7 @@ export default function EventsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={() => load(page)} />
       ) : events.length === 0 ? (
-        <EmptyState icon={CalendarIcon} title="No events found" message="Check back soon for upcoming events." />
+        <EmptyState icon={CalendarIcon} title={t('events.noEvents')} message={t('events.checkBack')} />
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -60,7 +64,7 @@ export default function EventsPage() {
                   }`}>{event.status}</span>
                   <h3 className="font-semibold text-gray-800 mb-1">{event.title}</h3>
                   <p className="text-xs text-gray-500">
-                    📅 {new Date(event.eventDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    📅 {new Date(event.eventDate).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                   {event.location && <p className="text-xs text-gray-500 mt-0.5">📍 {event.location}</p>}
                 </div>
@@ -70,9 +74,9 @@ export default function EventsPage() {
 
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-10">
-              <button onClick={() => load(page - 1)} disabled={page === 0} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">← Prev</button>
-              <span className="py-2 px-4 text-sm text-gray-500">Page {page + 1} of {totalPages}</span>
-              <button onClick={() => load(page + 1)} disabled={page >= totalPages - 1} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">Next →</button>
+              <button onClick={() => load(page - 1)} disabled={page === 0} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">{t('common.prev')}</button>
+              <span className="py-2 px-4 text-sm text-gray-500">{t('common.page')} {page + 1} {t('common.of')} {totalPages}</span>
+              <button onClick={() => load(page + 1)} disabled={page >= totalPages - 1} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">{t('common.next')}</button>
             </div>
           )}
         </>

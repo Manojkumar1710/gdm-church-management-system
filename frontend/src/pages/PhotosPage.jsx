@@ -4,8 +4,10 @@ import { Skeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import CrossDivider from '../components/ornaments/CrossDivider';
+import { useLanguage } from '../context/LanguageContext';
 
-function Lightbox({ photo, onClose }) {
+function Lightbox({ photo, onClose, t }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
@@ -14,7 +16,7 @@ function Lightbox({ photo, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90" onClick={onClose}>
-      <button className="absolute top-4 right-4 text-white" onClick={onClose} aria-label="Close">
+      <button className="absolute top-4 right-4 text-white" onClick={onClose} aria-label={t('common.close')}>
         <XMarkIcon className="h-8 w-8" />
       </button>
       <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
@@ -31,6 +33,7 @@ function Lightbox({ photo, onClose }) {
 }
 
 export default function PhotosPage() {
+  const { t } = useLanguage();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(null);
@@ -43,7 +46,8 @@ export default function PhotosPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-      <SectionHeader title="Latest Event Photos" subtitle="Moments of worship, celebration and community" />
+      <SectionHeader title={t('photos.title')} subtitle={t('photos.subtitle')} />
+      <CrossDivider className="mb-8" opacity={0.3} />
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -52,7 +56,7 @@ export default function PhotosPage() {
           ))}
         </div>
       ) : photos.length === 0 ? (
-        <EmptyState icon={PhotoIcon} title="No photos yet" message="Event photos will appear here." />
+        <EmptyState icon={PhotoIcon} title={t('photos.noPhotos')} message={t('photos.photosHere')} />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {photos.map(p => (
@@ -60,7 +64,7 @@ export default function PhotosPage() {
               key={p.id}
               className="aspect-square overflow-hidden rounded-lg bg-gray-100 group"
               onClick={() => setLightbox(p)}
-              aria-label={p.title || 'View photo'}
+              aria-label={p.title || t('common.viewAll')}
             >
               <img
                 src={p.imageUrl}
@@ -73,7 +77,7 @@ export default function PhotosPage() {
         </div>
       )}
 
-      {lightbox && <Lightbox photo={lightbox} onClose={() => setLightbox(null)} />}
+      {lightbox && <Lightbox photo={lightbox} onClose={() => setLightbox(null)} t={t} />}
     </div>
   );
 }

@@ -4,8 +4,11 @@ import { Skeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import CrossDivider from '../components/ornaments/CrossDivider';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GalleryPage() {
+  const { t } = useLanguage();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(null);
@@ -27,20 +30,21 @@ export default function GalleryPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-      <SectionHeader title="Gallery" subtitle="A glimpse of our church life and community" />
+      <SectionHeader title={t('gallery.title')} subtitle={t('gallery.subtitle')} />
+      <CrossDivider className="mb-8" opacity={0.3} />
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
         </div>
       ) : items.length === 0 ? (
-        <EmptyState icon={PhotoIcon} title="No gallery items" />
+        <EmptyState icon={PhotoIcon} title={t('gallery.noItems')} />
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {items.map(item => (
               <button key={item.id} onClick={() => setLightbox(item)}
-                className="aspect-square overflow-hidden rounded-lg bg-gray-100 group" aria-label={item.title || 'Gallery photo'}>
+                className="aspect-square overflow-hidden rounded-lg bg-gray-100 group" aria-label={item.title || t('common.viewAll')}>
                 <img src={item.imageUrl} alt={item.title || 'Gallery'} loading="lazy"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
               </button>
@@ -48,8 +52,8 @@ export default function GalleryPage() {
           </div>
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
-              <button onClick={() => load(page - 1)} disabled={page === 0} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">← Prev</button>
-              <button onClick={() => load(page + 1)} disabled={page >= totalPages - 1} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">Next →</button>
+              <button onClick={() => load(page - 1)} disabled={page === 0} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">{t('common.prev')}</button>
+              <button onClick={() => load(page + 1)} disabled={page >= totalPages - 1} className="btn-secondary py-2 px-4 text-sm disabled:opacity-30">{t('common.next')}</button>
             </div>
           )}
         </>
@@ -57,7 +61,9 @@ export default function GalleryPage() {
 
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90" onClick={() => setLightbox(null)}>
-          <button className="absolute top-4 right-4 text-white" onClick={() => setLightbox(null)}><XMarkIcon className="h-8 w-8" /></button>
+          <button className="absolute top-4 right-4 text-white" onClick={() => setLightbox(null)} aria-label={t('common.close')}>
+            <XMarkIcon className="h-8 w-8" />
+          </button>
           <div className="max-w-3xl w-full" onClick={e => e.stopPropagation()}>
             <img src={lightbox.imageUrl} alt={lightbox.title} className="w-full max-h-[80vh] object-contain rounded-lg" />
             {lightbox.title && <p className="text-white text-center mt-2 font-medium">{lightbox.title}</p>}

@@ -1,24 +1,32 @@
+import { useLanguage } from '../../context/LanguageContext';
+
 export default function Pagination({ page, totalPages, onPageChange }) {
+  const { t } = useLanguage();
   if (totalPages <= 1) return null;
+
   return (
-    <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
-      <span>Page {page + 1} of {totalPages}</span>
+    <nav className="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label={t('common.page')}>
+      <span className="text-xs font-semibold text-gray-500">
+        {t('common.page')} {page + 1} {t('common.of')} {totalPages}
+      </span>
       <div className="flex gap-2">
         <button
+          type="button"
           disabled={page === 0}
           onClick={() => onPageChange(page - 1)}
-          className="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="admin-btn"
         >
-          ← Prev
+          {t('common.prev')}
         </button>
         <button
+          type="button"
           disabled={page >= totalPages - 1}
           onClick={() => onPageChange(page + 1)}
-          className="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="admin-btn"
         >
-          Next →
+          {t('common.next')}
         </button>
       </div>
-    </div>
+    </nav>
   );
 }

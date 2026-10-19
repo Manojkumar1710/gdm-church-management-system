@@ -4,8 +4,11 @@ import { CardSkeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
 import { AcademicCapIcon } from '@heroicons/react/24/outline';
+import CrossDivider from '../components/ornaments/CrossDivider';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function SundaySchoolPage() {
+  const { t, dateLocale } = useLanguage();
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -25,34 +28,37 @@ export default function SundaySchoolPage() {
 
   useEffect(() => load(0), []);
 
+  const aboutCards = [
+    { icon: '👶', titleKey: 'sundaySchool.children', descKey: 'sundaySchool.childrenDesc' },
+    { icon: '👩‍🏫', titleKey: 'sundaySchool.teachers', descKey: 'sundaySchool.teachersDesc' },
+    { icon: '📖', titleKey: 'sundaySchool.programs', descKey: 'sundaySchool.programsDesc' },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
       {/* Hero banner */}
       <div className="bg-church-blue text-white rounded-2xl px-8 py-12 mb-14 text-center">
         <AcademicCapIcon className="h-14 w-14 mx-auto text-church-gold mb-4" />
-        <h1 className="text-4xl font-serif font-bold mb-3">Sunday School</h1>
+        <h1 className="text-4xl font-serif font-bold mb-3">{t('sundaySchool.title')}</h1>
         <p className="text-white/75 text-lg max-w-xl mx-auto">
-          Nurturing the next generation in faith, knowledge and character.
+          {t('sundaySchool.tagline')}
         </p>
       </div>
 
       {/* About section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        {[
-          { icon: '👶', title: 'Children', desc: 'Age-appropriate Bible lessons and activities for children across all class groups.' },
-          { icon: '👩‍🏫', title: 'Teachers', desc: 'Dedicated teachers who invest their time and love into every child.' },
-          { icon: '📖', title: 'Programs', desc: 'Special programs, events and celebrations throughout the year.' },
-        ].map(item => (
-          <div key={item.title} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 text-center">
+        {aboutCards.map(item => (
+          <div key={item.titleKey} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 text-center">
             <div className="text-4xl mb-3">{item.icon}</div>
-            <h3 className="font-serif font-bold text-church-blue text-lg mb-2">{item.title}</h3>
-            <p className="text-gray-500 text-sm">{item.desc}</p>
+            <h3 className="font-serif font-bold text-church-blue text-lg mb-2">{t(item.titleKey)}</h3>
+            <p className="text-gray-500 text-sm">{t(item.descKey)}</p>
           </div>
         ))}
       </div>
 
       {/* Programs */}
-      <SectionHeader title="Programs & Events" subtitle="What's happening in Sunday School" />
+      <SectionHeader title={t('sundaySchool.programsTitle')} subtitle={t('sundaySchool.programsSub')} />
+      <CrossDivider className="mb-8" opacity={0.3} />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -61,8 +67,8 @@ export default function SundaySchoolPage() {
       ) : programs.length === 0 ? (
         <EmptyState
           icon={AcademicCapIcon}
-          title="No programs listed yet"
-          message="Sunday School programs will appear here when published."
+          title={t('sundaySchool.noPrograms')}
+          message={t('sundaySchool.programsHere')}
         />
       ) : (
         <>
@@ -85,7 +91,7 @@ export default function SundaySchoolPage() {
                   <h3 className="font-serif font-semibold text-church-blue mb-1">{p.title}</h3>
                   {p.programDate && (
                     <p className="text-xs text-gray-500 mb-2">
-                      📅 {new Date(p.programDate).toLocaleDateString('en-IN', {
+                      📅 {new Date(p.programDate).toLocaleDateString(dateLocale, {
                         day: 'numeric', month: 'long', year: 'numeric'
                       })}
                     </p>
@@ -101,7 +107,7 @@ export default function SundaySchoolPage() {
                       rel="noopener noreferrer"
                       className="mt-3 inline-flex items-center text-sm text-church-blue font-medium hover:underline"
                     >
-                      ▶ Watch Video
+                      {t('sundaySchool.watchVideo')}
                     </a>
                   )}
                 </div>
@@ -115,13 +121,15 @@ export default function SundaySchoolPage() {
                 onClick={() => load(page - 1)}
                 disabled={page === 0}
                 className="btn-secondary py-2 px-4 text-sm disabled:opacity-30"
-              >← Prev</button>
-              <span className="py-2 px-4 text-sm text-gray-500">Page {page + 1} of {totalPages}</span>
+              >{t('common.prev')}</button>
+              <span className="py-2 px-4 text-sm text-gray-500">
+                {t('common.page')} {page + 1} {t('common.of')} {totalPages}
+              </span>
               <button
                 onClick={() => load(page + 1)}
                 disabled={page >= totalPages - 1}
                 className="btn-secondary py-2 px-4 text-sm disabled:opacity-30"
-              >Next →</button>
+              >{t('common.next')}</button>
             </div>
           )}
         </>

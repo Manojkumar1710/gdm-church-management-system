@@ -1,6 +1,7 @@
 package com.gdm.church.offerings;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -13,7 +14,11 @@ import java.time.LocalDate;
 @Data @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OfferingDto {
+
+    /** Server-assigned — ignored on inbound submission. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
+
     private String donorName;
     private String email;
 
@@ -22,6 +27,9 @@ public class OfferingDto {
     private BigDecimal amount;
 
     private Long purposeId;
+
+    /** Server-resolved — ignored on inbound submission. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String purposeName;
 
     @NotNull(message = "Offering date is required")
@@ -29,8 +37,18 @@ public class OfferingDto {
 
     private String paymentMethod;
     private String paymentReference;
+
+    /**
+     * Status is always set by the server (PENDING on public submit).
+     * Submitters cannot override it.
+     */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String status;
+
     private boolean anonymous;
     private String notes;
+
+    /** Server-assigned — ignored on inbound submission. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Instant createdAt;
 }

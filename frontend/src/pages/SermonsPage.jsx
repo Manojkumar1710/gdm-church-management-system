@@ -3,14 +3,15 @@ import { sermonService, youtubeService } from '../services/sermonService';
 import { CardSkeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
+import CrossDivider from '../components/ornaments/CrossDivider';
 import { getYoutubeId, getYoutubeThumbnail, getYoutubeEmbed } from '../utils/youtube';
 import { BookOpenIcon, PlayIcon } from '@heroicons/react/24/outline';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ── YouTube thumbnail with fallback ──────────────────────────── */
 function YTThumb({ url, title, fallbackThumb }) {
-  const ytId  = getYoutubeId(url);
-  const thumb = fallbackThumb || getYoutubeThumbnail(url);
   const embed = getYoutubeEmbed(url);
+  const thumb = fallbackThumb || getYoutubeThumbnail(url);
 
   const [showEmbed, setShowEmbed] = useState(false);
   const [imgError,  setImgError]  = useState(false);
@@ -45,7 +46,6 @@ function YTThumb({ url, title, fallbackThumb }) {
           <BookOpenIcon className="h-12 w-12 text-white/20" />
         </div>
       )}
-      {/* Play overlay */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">
         <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center group-hover:bg-red-600 transition-colors shadow-lg">
           <PlayIcon className="h-6 w-6 text-white ml-0.5" />
@@ -56,7 +56,7 @@ function YTThumb({ url, title, fallbackThumb }) {
 }
 
 /* ── Sermon card ───────────────────────────────────────────────── */
-function SermonCard({ s }) {
+function SermonCard({ s, t }) {
   const hasVideo = Boolean(s.videoUrl && getYoutubeId(s.videoUrl));
   return (
     <div className="card flex flex-col overflow-hidden">
@@ -73,7 +73,7 @@ function SermonCard({ s }) {
         {s.videoUrl && !hasVideo && (
           <a href={s.videoUrl} target="_blank" rel="noopener noreferrer"
              className="mt-3 text-xs text-church-blue font-medium hover:underline">
-            Watch on YouTube ↗
+            {t('common.watchOnYoutube')}
           </a>
         )}
       </div>
@@ -82,7 +82,7 @@ function SermonCard({ s }) {
 }
 
 /* ── YouTube video card ────────────────────────────────────────── */
-function VideoCard({ v }) {
+function VideoCard({ v, t }) {
   return (
     <div className="card flex flex-col overflow-hidden">
       <YTThumb url={v.youtubeUrl} title={v.title} fallbackThumb={v.thumbnailUrl} />
@@ -94,7 +94,7 @@ function VideoCard({ v }) {
         {v.description && <p className="text-sm text-gray-500 line-clamp-2">{v.description}</p>}
         <a href={v.youtubeUrl} target="_blank" rel="noopener noreferrer"
            className="mt-auto pt-3 text-xs text-gray-400 hover:text-church-blue transition-colors">
-          Open on YouTube ↗
+          {t('common.openOnYoutube')}
         </a>
       </div>
     </div>
@@ -103,6 +103,7 @@ function VideoCard({ v }) {
 
 /* ── Page ──────────────────────────────────────────────────────── */
 export default function SermonsPage() {
+  const { t } = useLanguage();
   const [sermons, setSermons] = useState([]);
   const [videos,  setVideos]  = useState([]);
   const [tab,     setTab]     = useState('sermons');
@@ -119,29 +120,31 @@ export default function SermonsPage() {
   }, []);
 
   const tabs = [
-    { key: 'sermons',  label: '📖 Sermons',       count: sermons.length },
-    { key: 'youtube',  label: '▶ YouTube Videos', count: videos.length  },
+    { key: 'sermons',  label: t('sermons.tabSermons'), count: sermons.length },
+    { key: 'youtube',  label: t('sermons.tabYoutube'), count: videos.length  },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-      <SectionHeader title="Sermons & Media" subtitle="Be inspired, encouraged and equipped through the Word" />
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16">
+      <SectionHeader title={t('sermons.title')} subtitle={t('sermons.subtitle')} />
+
+      <CrossDivider className="mb-8" opacity={0.3} />
 
       {/* Tab switcher */}
       <div className="flex gap-2 justify-center mb-10 bg-gray-100 rounded-2xl p-1.5 max-w-sm mx-auto">
-        {tabs.map(t => (
+        {tabs.map(tabItem => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
             className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-              tab === t.key
+              tab === tabItem.key
                 ? 'bg-white text-church-blue shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t.label}
-            {!loading && t.count > 0 && (
-              <span className="ml-1.5 text-xs text-gray-400">({t.count})</span>
+            {tabItem.label}
+            {!loading && tabItem.count > 0 && (
+              <span className="ml-1.5 text-xs text-gray-400">({tabItem.count})</span>
             )}
           </button>
         ))}
@@ -153,15 +156,15 @@ export default function SermonsPage() {
         </div>
       ) : tab === 'sermons' ? (
         sermons.length === 0
-          ? <EmptyState icon={BookOpenIcon} title="No sermons yet" message="Sermons will appear here when they are published." />
+          ? <EmptyState icon={BookOpenIcon} title={t('sermons.noSermons')} message={t('sermons.sermonsHere')} />
           : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {sermons.map(s => <SermonCard key={s.id} s={s} />)}
+              {sermons.map(s => <SermonCard key={s.id} s={s} t={t} />)}
             </div>
       ) : (
         videos.length === 0
-          ? <EmptyState title="No YouTube videos yet" message="YouTube videos will appear here when they are added." />
+          ? <EmptyState title={t('sermons.noVideos')} message={t('sermons.videosHere')} />
           : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {videos.map(v => <VideoCard key={v.id} v={v} />)}
+              {videos.map(v => <VideoCard key={v.id} v={v} t={t} />)}
             </div>
       )}
     </div>

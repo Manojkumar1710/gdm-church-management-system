@@ -4,23 +4,20 @@ import AdminTable from './components/AdminTable';
 import Pagination from './components/Pagination';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
-import { HandRaisedIcon, CheckCircleIcon, ClockIcon, ArchiveBoxIcon, InboxIcon } from '@heroicons/react/24/outline';
+import { useLanguage } from '../context/LanguageContext';
+import { CheckCircleIcon, ClockIcon, ArchiveBoxIcon, InboxIcon } from '@heroicons/react/24/outline';
 
 const STATUS_META = {
-  NEW:         { color: 'bg-blue-100 text-blue-700',   icon: InboxIcon,        label: 'New' },
-  IN_PROGRESS: { color: 'bg-amber-100 text-amber-700', icon: ClockIcon,        label: 'In Progress' },
-  PRAYED:      { color: 'bg-green-100 text-green-700', icon: CheckCircleIcon,  label: 'Prayed ✓' },
-  ARCHIVED:    { color: 'bg-gray-100 text-gray-500',   icon: ArchiveBoxIcon,   label: 'Archived' },
+  NEW:         { pill: 'pill--info',   icon: InboxIcon },
+  IN_PROGRESS: { pill: 'pill--warn',   icon: ClockIcon },
+  PRAYED:      { pill: 'pill--success',icon: CheckCircleIcon },
+  ARCHIVED:    { pill: 'pill--muted',  icon: ArchiveBoxIcon },
 };
 
-const STATUS_OPTIONS = [
-  { value: 'NEW',         label: '📥 New' },
-  { value: 'IN_PROGRESS', label: '🕐 In Progress' },
-  { value: 'PRAYED',      label: '✅ Prayed' },
-  { value: 'ARCHIVED',    label: '📦 Archived' },
-];
+const STATUS_ORDER = ['NEW', 'IN_PROGRESS', 'PRAYED', 'ARCHIVED'];
 
 export default function AdminPrayerPage() {
+  const { t, dateLocale } = useLanguage();
   const [rows, setRows]           = useState([]);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState(0);
@@ -44,9 +41,7 @@ export default function AdminPrayerPage() {
 
   useEffect(() => load(0), []);
 
-  /* Change status inline (table dropdown) */
   const changeStatus = async (row, status) => {
-    // If marking as PRAYED and request has an email, open the notify dialog
     if (status === 'PRAYED' && row.email && !row.anonymous) {
       setViewing({ ...row, pendingStatus: 'PRAYED' });
       return;
@@ -54,24 +49,20 @@ export default function AdminPrayerPage() {
     await applyStatus(row, status);
   };
 
-  /* Actually save the status change */
   const applyStatus = async (row, status, note = '') => {
     try {
       await prayerService.updateStatus(row.id, status, note);
       toast.success(
-        status === 'PRAYED'
-          ? '🙏 Marked as Prayed'
-          : 'Status updated',
+        status === 'PRAYED' ? t('admin.toast.prayed') : t('admin.toast.statusUpdated'),
         { duration: 3000 }
       );
       load(page);
       if (viewing?.id === row.id) setViewing(v => ({ ...v, status, pendingStatus: null }));
     } catch {
-      toast.error('Update failed');
+      toast.error(t('admin.toast.updateFailed'));
     }
   };
 
-  /* From the detail modal */
   const handleModalStatusChange = async (newStatus) => {
     if (newStatus === 'PRAYED' && viewing.email && !viewing.anonymous) {
       setViewing(v => ({ ...v, pendingStatus: 'PRAYED' }));
@@ -80,7 +71,6 @@ export default function AdminPrayerPage() {
     await applyStatus(viewing, newStatus);
   };
 
-  /* Confirm "mark as prayed" with optional pastoral note */
   const confirmPrayed = async () => {
     setNotifying(true);
     try {
@@ -91,18 +81,22 @@ export default function AdminPrayerPage() {
     }
   };
 
-  /* Filtered rows */
   const displayed = filterStatus ? rows.filter(r => r.status === filterStatus) : rows;
+
+  const statusPill = (status) => {
+    const m = STATUS_META[status] || STATUS_META.NEW;
+    return <span className={`pill ${m.pill}`}>{t(`admin.status.${status}`)}</span>;
+  };
 
   const cols = [
     {
-      key: 'name', label: 'Name',
+      key: 'name', label: t('admin.col.name'),
       render: r => r.anonymous
-        ? <em className="text-gray-400 italic text-xs">Anonymous</em>
+        ? <em className="text-gray-400 italic text-xs">{t('admin.status.ANONYMOUS')}</em>
         : <span className="font-medium">{r.name || '—'}</span>,
     },
     {
-      key: 'requestText', label: 'Request',
+      key: 'requestText', label: t('admin.col.request'),
       render: r => (
         <span className="line-clamp-2 max-w-xs block text-gray-600 text-sm">
           &ldquo;{r.requestText}&rdquo;
@@ -110,75 +104,65 @@ export default function AdminPrayerPage() {
       ),
     },
     {
-      key: 'createdAt', label: 'Submitted',
+      key: 'createdAt', label: t('admin.col.submitted'),
       render: r => r.createdAt
-        ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+        ? new Date(r.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })
         : '—',
     },
-    {
-      key: 'status', label: 'Status',
-      render: r => {
-        const m = STATUS_META[r.status] || STATUS_META.NEW;
-        return <span className={`badge ${m.color}`}>{m.label}</span>;
-      },
-    },
+    { key: 'status', label: t('admin.col.status'), render: r => statusPill(r.status) },
   ];
 
-  /* ── render ── */
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-serif font-bold text-church-blue flex items-center gap-2">
-            <HandRaisedIcon className="h-6 w-6" /> Prayer Requests
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">Private — visible to admins only</p>
-        </div>
+      <div className="page-header">
+        <p className="page-subtitle">{t('admin.pageDesc.prayerRequests')}</p>
+      </div>
 
-        {/* Status filter pills */}
+      <div className="admin-toolbar flex-wrap">
+        <span className="admin-alert admin-alert--info text-xs">
+          {t('admin.prayer.private')}
+        </span>
         <div className="flex flex-wrap gap-2">
           <button
+            type="button"
             onClick={() => setFilter('')}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-              !filterStatus ? 'bg-church-blue text-white border-church-blue' : 'border-gray-300 text-gray-500 hover:border-church-blue'
-            }`}
-          >All</button>
-          {Object.entries(STATUS_META).map(([val, { color, label }]) => (
+            className={`filter-pill ${!filterStatus ? 'is-active' : ''}`}
+          >{t('admin.filter.all')}</button>
+          {STATUS_ORDER.map(val => (
             <button
               key={val}
+              type="button"
               onClick={() => setFilter(filterStatus === val ? '' : val)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                filterStatus === val ? 'ring-2 ring-church-blue ' + color : 'border-gray-200 text-gray-500 hover:border-gray-400'
-              }`}
+              className={`filter-pill ${filterStatus === val ? 'is-active' : ''}`}
             >
-              {label} {rows.filter(r => r.status === val).length > 0 && (
-                <span className="ml-1 bg-white/60 rounded-full px-1">{rows.filter(r => r.status === val).length}</span>
+              {t(`admin.status.${val}`)}
+              {rows.filter(r => r.status === val).length > 0 && (
+                <span className="ml-1 rounded-full bg-white/70 px-1.5">{rows.filter(r => r.status === val).length}</span>
               )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Stats strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {Object.entries(STATUS_META).map(([val, { color, label, icon: Icon }]) => {
+        {STATUS_ORDER.map(val => {
+          const m = STATUS_META[val];
+          const Icon = m.icon;
           const count = rows.filter(r => r.status === val).length;
           return (
-            <div key={val} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-              <span className={`p-2 rounded-lg ${color}`}>
+            <div key={val} className="stat-card">
+              <span className={`stat-card__icon ${m.pill}`}>
                 <Icon className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-2xl font-bold text-gray-800">{count}</p>
-                <p className="text-xs text-gray-500">{label}</p>
+                <p className="stat-card__value">{count}</p>
+                <p className="stat-card__label">{t(`admin.status.${val}`)}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Table */}
       <AdminTable
         columns={cols}
         rows={displayed}
@@ -186,39 +170,39 @@ export default function AdminPrayerPage() {
         onEdit={row => { setViewing(row); setNotifyNote(''); }}
         actions={row => (
           <select
+            aria-label={t('admin.form.updateStatus')}
             value={row.status}
             onChange={e => changeStatus(row, e.target.value)}
-            className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-church-blue"
+            className="inline-select"
           >
-            {STATUS_OPTIONS.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            {STATUS_ORDER.map(s => (
+              <option key={s} value={s}>{t(`admin.status.${s}`)}</option>
             ))}
           </select>
         )}
-        emptyMessage="No prayer requests found."
+        emptyMessage={t('admin.empty.prayer')}
+        editLabel={t('common.view')}
       />
       <Pagination page={page} totalPages={totalPages} onPageChange={load} />
 
-      {/* ── Detail / Prayed modal ── */}
       <Modal
         open={!!viewing}
         onClose={() => { setViewing(null); setNotifyNote(''); }}
-        title="Prayer Request"
+        title={t('admin.entity.prayerRequest')}
         size="md"
       >
         {viewing && (
           <div className="space-y-5">
 
-            {/* Requester info */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">From</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">{t('admin.prayer.from')}</p>
                 <p className="font-semibold text-gray-800">
-                  {viewing.anonymous ? <em className="text-gray-400 font-normal">Anonymous</em> : viewing.name || '—'}
+                  {viewing.anonymous ? <em className="text-gray-400 font-normal">{t('admin.status.ANONYMOUS')}</em> : viewing.name || '—'}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Email</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">{t('admin.col.email')}</p>
                 <p className="text-gray-700">
                   {viewing.email
                     ? <a href={`mailto:${viewing.email}`} className="text-church-blue hover:underline">{viewing.email}</a>
@@ -226,45 +210,39 @@ export default function AdminPrayerPage() {
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Submitted</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">{t('admin.col.submitted')}</p>
                 <p className="text-gray-700">
-                  {viewing.createdAt ? new Date(viewing.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                  {viewing.createdAt ? new Date(viewing.createdAt).toLocaleString(dateLocale, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Current Status</p>
-                {(() => {
-                  const m = STATUS_META[viewing.status] || STATUS_META.NEW;
-                  return <span className={`badge ${m.color}`}>{m.label}</span>;
-                })()}
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">{t('admin.prayer.currentStatus')}</p>
+                {statusPill(viewing.status)}
               </div>
             </div>
 
-            {/* Prayer text */}
             <div>
-              <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">Prayer Request</p>
+              <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">{t('admin.prayer.requestLabel')}</p>
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-gray-800 leading-relaxed whitespace-pre-line text-sm italic">
                 &ldquo;{viewing.requestText}&rdquo;
               </div>
             </div>
 
-            {/* ── PRAYED confirmation panel ── */}
             {viewing.pendingStatus === 'PRAYED' ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center gap-2 text-green-700 font-semibold">
                   <CheckCircleIcon className="h-5 w-5" />
-                  Mark this request as Prayed
+                  {t('admin.prayer.markPrayed')}
                 </div>
                 {viewing.email && !viewing.anonymous && (
                   <div>
                     <p className="text-sm text-green-700 mb-2">
-                      This person has an email (<strong>{viewing.email}</strong>).
-                      You can add a personal note to be stored with this prayer record.
+                      {t('admin.prayer.emailNote', { email: viewing.email })}
                     </p>
                     <textarea
                       rows={3}
                       className="form-input resize-none text-sm"
-                      placeholder="Optional pastoral note (stored privately, not emailed automatically)…"
+                      placeholder={t('admin.prayer.notePlaceholder')}
                       value={notifyNote}
                       onChange={e => setNotifyNote(e.target.value)}
                     />
@@ -272,40 +250,42 @@ export default function AdminPrayerPage() {
                 )}
                 <div className="flex gap-3 pt-1">
                   <button
+                    type="button"
                     onClick={() => setViewing(v => ({ ...v, pendingStatus: null }))}
-                    className="btn-secondary py-2 px-4 text-sm flex-1"
+                    className="btn-secondary btn-sm flex-1"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
+                    type="button"
                     onClick={confirmPrayed}
                     disabled={notifying}
-                    className="btn-primary py-2 px-4 text-sm flex-1 bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                    className="btn-primary btn-sm flex-1"
                   >
-                    {notifying ? 'Saving…' : '🙏 Confirm Prayed'}
+                    {notifying ? t('admin.action.saving') : t('admin.action.confirmPrayed')}
                   </button>
                 </div>
               </div>
             ) : (
-              /* Normal status update */
               <div>
-                <label className="form-label">Update Status</label>
+                <p className="form-label">{t('admin.form.updateStatus')}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {STATUS_OPTIONS.map(s => {
-                    const m = STATUS_META[s.value];
-                    const isActive = viewing.status === s.value;
+                  {STATUS_ORDER.map(s => {
+                    const m = STATUS_META[s];
+                    const isActive = viewing.status === s;
                     return (
                       <button
-                        key={s.value}
-                        onClick={() => handleModalStatusChange(s.value)}
+                        type="button"
+                        key={s}
+                        onClick={() => handleModalStatusChange(s)}
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                           isActive
-                            ? `${m.color} border-transparent ring-2 ring-offset-1 ring-church-blue`
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'border-church-blue bg-church-blue/5 text-church-blue ring-2 ring-church-blue/30'
+                            : 'border-church-border text-gray-600 hover:border-church-blue hover:bg-church-light'
                         }`}
                       >
                         <m.icon className="h-4 w-4 shrink-0" />
-                        {m.label}
+                        {t(`admin.status.${s}`)}
                       </button>
                     );
                   })}

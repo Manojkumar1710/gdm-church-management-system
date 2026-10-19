@@ -7,14 +7,12 @@ import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
-import { MagnifyingGlassIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
+import { useLanguage } from '../context/LanguageContext';
+import { MagnifyingGlassIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 
-/* ─────────────────────────────────────────────────────────────────
-   CHILDREN TAB
-   Accessible by: ADMIN, SUNDAY_SCHOOL_TEACHER
-   ───────────────────────────────────────────────────────────────── */
 function ChildrenTab() {
   const { isAdmin } = useAuth();
+  const { t } = useLanguage();
 
   const [rows,          setRows]          = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -23,20 +21,19 @@ function ChildrenTab() {
   const [search,        setSearch]        = useState('');
   const [classFilter,   setClassFilter]   = useState('');
 
-  // Modal / form
   const [modal,        setModal]        = useState(false);
   const [form,         setForm]         = useState(emptyChild());
   const [editing,      setEditing]      = useState(null);
   const [saving,       setSaving]       = useState(false);
   const [errors,       setErrors]       = useState({});
 
-  // Delete confirm
   const [deleting,      setDeleting]      = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Deactivate confirm
   const [deactivating,      setDeactivating]      = useState(null);
   const [deactivateLoading, setDeactivateLoading] = useState(false);
+
+  const entity = t('admin.entity.child');
 
   function emptyChild() {
     return { name: '', dateOfBirth: '', village: '', parentName: '', parentContact: '', classGroup: '', active: true };
@@ -51,13 +48,12 @@ function ChildrenTab() {
         setTotalPages(d.totalPages);
         setPage(p);
       })
-      .catch(() => toast.error('Failed to load children'))
+      .catch(() => toast.error(t('admin.ss.loadFail')))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => load(0), []);
 
-  // Client-side search/filter (sufficient for church-scale data)
   const displayed = useMemo(() => {
     let data = rows;
     if (search.trim()) {
@@ -74,10 +70,11 @@ function ChildrenTab() {
     return data;
   }, [rows, search, classFilter]);
 
-  // Unique class groups for the filter dropdown
   const classGroups = useMemo(() =>
     [...new Set(rows.map(r => r.classGroup).filter(Boolean))].sort()
   , [rows]);
+
+  const filtered = !!(search || classFilter);
 
   const openCreate = () => {
     setEditing(null);
@@ -103,7 +100,7 @@ function ChildrenTab() {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = 'Name is required';
+    if (!form.name.trim()) e.name = t('admin.validate.nameRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -115,15 +112,15 @@ function ChildrenTab() {
     try {
       if (editing) {
         await sundaySchoolService.updateChild(editing.id, form);
-        toast.success('Child updated successfully');
+        toast.success(t('admin.toast.updated', { entity }));
       } else {
         await sundaySchoolService.createChild(form);
-        toast.success('Child added successfully');
+        toast.success(t('admin.toast.created', { entity }));
       }
       setModal(false);
       load(page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed. Please try again.');
+      toast.error(err.response?.data?.message || t('admin.ss.saveFail'));
     } finally {
       setSaving(false);
     }
@@ -133,11 +130,11 @@ function ChildrenTab() {
     setDeleteLoading(true);
     try {
       await sundaySchoolService.deleteChild(deleting.id);
-      toast.success('Child record deleted');
+      toast.success(t('admin.toast.deleted', { entity }));
       setDeleting(null);
       load(page);
     } catch {
-      toast.error('Delete failed. Please try again.');
+      toast.error(t('admin.toast.deleteFailed'));
     } finally {
       setDeleteLoading(false);
     }
@@ -147,11 +144,11 @@ function ChildrenTab() {
     setDeactivateLoading(true);
     try {
       await sundaySchoolService.deactivateChild(deactivating.id);
-      toast.success(`${deactivating.name} has been deactivated`);
+      toast.success(t('admin.ss.deactivated', { name: deactivating.name }));
       setDeactivating(null);
       load(page);
     } catch {
-      toast.error('Deactivate failed. Please try again.');
+      toast.error(t('admin.ss.deactivateFail'));
     } finally {
       setDeactivateLoading(false);
     }
@@ -163,17 +160,17 @@ function ChildrenTab() {
   });
 
   const cols = [
-    { key: 'name',         label: 'Name' },
-    { key: 'dateOfBirth',  label: 'Date of Birth' },
-    { key: 'village',      label: 'Village' },
-    { key: 'classGroup',   label: 'Class / Group' },
-    { key: 'parentName',   label: 'Parent / Guardian' },
-    { key: 'parentContact',label: 'Parent Contact' },
+    { key: 'name',         label: t('admin.col.name') },
+    { key: 'dateOfBirth',  label: t('admin.ss.dob'), render: r => r.dateOfBirth || '—' },
+    { key: 'village',      label: t('admin.col.village'), render: r => r.village || '—' },
+    { key: 'classGroup',   label: t('admin.ss.classGroup'), render: r => r.classGroup || '—' },
+    { key: 'parentName',   label: t('admin.ss.parentName'), render: r => r.parentName || '—' },
+    { key: 'parentContact',label: t('admin.ss.parentContact'), render: r => r.parentContact || '—' },
     {
-      key: 'active', label: 'Status',
+      key: 'active', label: t('admin.col.status'),
       render: r => (
-        <span className={`badge ${r.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-          {r.active ? '✓ Active' : '✗ Inactive'}
+        <span className={`pill ${r.active ? 'pill--success' : 'pill--danger'}`}>
+          {r.active ? t('admin.status.YES') : t('admin.pastor.inactive')}
         </span>
       ),
     },
@@ -181,57 +178,56 @@ function ChildrenTab() {
 
   return (
     <>
-      {/* Header row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-          🔒 Children's records are private — never publicly visible.
-        </div>
-        <button onClick={openCreate} className="btn-primary shrink-0">
-          + Add Child
-        </button>
+      <div className="page-header">
+        <p className="page-subtitle">{t('admin.ss.privateNotice')}</p>
+        <button onClick={openCreate} className="btn-primary btn-sm shrink-0">+ {t('admin.action.add', { entity })}</button>
       </div>
 
-      {/* Search + filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="admin-toolbar">
         <div className="relative flex-1 max-w-sm">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <label className="sr-only" htmlFor="ss-search">{t('common.search')}</label>
           <input
+            id="ss-search"
             className="form-input pl-9"
-            placeholder="Search by name, parent or village…"
+            placeholder={t('admin.ss.searchByName')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
 
         {classGroups.length > 0 && (
-          <select
-            className="form-input w-auto min-w-[180px]"
-            value={classFilter}
-            onChange={e => setClassFilter(e.target.value)}
-          >
-            <option value="">All Classes</option>
-            {classGroups.map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
+          <>
+            <label className="sr-only" htmlFor="ss-class">{t('admin.ss.allClasses')}</label>
+            <select
+              id="ss-class"
+              className="inline-select"
+              value={classFilter}
+              onChange={e => setClassFilter(e.target.value)}
+            >
+              <option value="">{t('admin.ss.allClasses')}</option>
+              {classGroups.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </>
         )}
 
-        {(search || classFilter) && (
+        {filtered && (
           <button
+            type="button"
             onClick={() => { setSearch(''); setClassFilter(''); }}
-            className="text-xs text-gray-500 hover:text-church-blue transition-colors px-2"
+            className="btn-ghost btn-sm"
           >
-            ✕ Clear filters
+            {t('admin.action.clearFilters')}
           </button>
         )}
 
         <span className="text-sm text-gray-400 self-center">
-          {displayed.length} {displayed.length === 1 ? 'child' : 'children'}
-          {(search || classFilter) && rows.length !== displayed.length && ` of ${rows.length}`}
+          {t(filtered && rows.length !== displayed.length ? 'admin.ss.ofTotal' : displayed.length === 1 ? 'admin.ss.countChild' : 'admin.ss.countChildren', filtered && rows.length !== displayed.length ? { count: displayed.length, total: rows.length } : { count: displayed.length })}
         </span>
       </div>
 
-      {/* Table */}
       <AdminTable
         columns={cols}
         rows={displayed}
@@ -239,68 +235,65 @@ function ChildrenTab() {
         onEdit={openEdit}
         actions={row => (
           <div className="flex items-center gap-1.5">
-            {/* Deactivate — only shown for active children */}
             {row.active && (
               <button
+                type="button"
                 onClick={() => setDeactivating(row)}
-                className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-medium transition-colors"
-                title="Mark as inactive"
+                className="admin-btn"
+                title={t('admin.ss.markInactive')}
               >
-                Deactivate
+                {t('admin.ss.deactivate')}
               </button>
             )}
-            {/* Delete — admin only */}
             {isAdmin && (
               <button
+                type="button"
                 onClick={() => setDeleting(row)}
-                className="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors"
+                className="admin-btn admin-btn--danger"
               >
-                Delete
+                {t('common.delete')}
               </button>
             )}
           </div>
         )}
-        emptyMessage={
-          search || classFilter
-            ? 'No children match your search.'
-            : 'No children added yet. Click "+ Add Child" to get started.'
-        }
+        emptyMessage={filtered ? t('admin.empty.noResults') : t('admin.empty.children')}
       />
       <Pagination page={page} totalPages={totalPages} onPageChange={load} />
 
-      {/* ── Add / Edit modal ── */}
       <Modal
         open={modal}
         onClose={() => setModal(false)}
-        title={editing ? 'Edit Child Record' : 'Add Child'}
+        title={editing ? t('admin.action.edit', { entity }) : t('admin.action.add', { entity })}
         size="lg"
       >
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <div>
-              <label className="form-label">Full Name *</label>
+              <label className="form-label" htmlFor="c-name">{t('admin.ss.fullName')} *</label>
               <input
+                id="c-name"
                 className={`form-input ${errors.name ? 'border-red-400' : ''}`}
                 placeholder="Child's full name"
                 {...f('name')}
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              {errors.name && <p className="form-error">{errors.name}</p>}
             </div>
 
             <div>
-              <label className="form-label">Date of Birth</label>
-              <input type="date" className="form-input" {...f('dateOfBirth')} />
+              <label className="form-label" htmlFor="c-dob">{t('admin.ss.dob')}</label>
+              <input id="c-dob" type="date" className="form-input" {...f('dateOfBirth')} />
             </div>
 
             <div>
-              <label className="form-label">Village</label>
-              <input className="form-input" placeholder="e.g. Yerramalla" {...f('village')} />
+              <label className="form-label" htmlFor="c-village">{t('admin.col.village')}</label>
+              <input id="c-village" className="form-input" placeholder="e.g. Yerramalla" {...f('village')} />
             </div>
 
             <div>
-              <label className="form-label">Class / Group</label>
+              <label className="form-label" htmlFor="c-class">{t('admin.ss.classGroup')}</label>
               <input
+                id="c-class"
                 className="form-input"
                 placeholder="e.g. Nursery, Primary, Junior…"
                 {...f('classGroup')}
@@ -308,13 +301,13 @@ function ChildrenTab() {
             </div>
 
             <div>
-              <label className="form-label">Parent / Guardian Name</label>
-              <input className="form-input" placeholder="Parent's full name" {...f('parentName')} />
+              <label className="form-label" htmlFor="c-parent">{t('admin.ss.parentName')}</label>
+              <input id="c-parent" className="form-input" placeholder="Parent's full name" {...f('parentName')} />
             </div>
 
             <div>
-              <label className="form-label">Parent Contact Number</label>
-              <input className="form-input" placeholder="+91-9XXXXXXXXX" {...f('parentContact')} />
+              <label className="form-label" htmlFor="c-contact">{t('admin.ss.parentContact')}</label>
+              <input id="c-contact" className="form-input" placeholder="+91-9XXXXXXXXX" {...f('parentContact')} />
             </div>
 
             <div className="md:col-span-2">
@@ -329,46 +322,36 @@ function ChildrenTab() {
                   onChange={e => setForm(p => ({ ...p, active: e.target.checked }))}
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  {form.active ? 'Active — attending Sunday School' : 'Inactive — not currently attending'}
+                  {form.active ? t('admin.ss.activeOn') : t('admin.ss.activeOff')}
                 </span>
               </label>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={() => setModal(false)}
-              className="btn-secondary py-2 px-5 text-sm"
-            >
-              Cancel
+            <button type="button" onClick={() => setModal(false)} className="btn-secondary btn-sm">
+              {t('common.cancel')}
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-primary py-2 px-5 text-sm"
-            >
-              {saving ? 'Saving…' : editing ? 'Update Child' : 'Add Child'}
+            <button type="submit" disabled={saving} className="btn-primary btn-sm">
+              {saving ? t('admin.action.saving') : editing ? t('admin.action.update', { entity }) : t('admin.action.create', { entity })}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* ── Deactivate confirm ── */}
       <ConfirmDialog
         open={!!deactivating}
-        title="Deactivate Child"
-        message={`Mark "${deactivating?.name}" as inactive? The record will be kept but the child will no longer appear as active.`}
+        title={t('admin.ss.deactivateTitle')}
+        message={t('admin.ss.deactivateMsg', { name: deactivating?.name })}
         onConfirm={confirmDeactivate}
         onCancel={() => setDeactivating(null)}
         loading={deactivateLoading}
       />
 
-      {/* ── Delete confirm (admin only) ── */}
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Child Record"
-        message={`Permanently delete the record for "${deleting?.name}"? This cannot be undone.`}
+        title={t('admin.ss.deleteTitle')}
+        message={t('admin.ss.deleteMsg', { name: deleting?.name })}
         onConfirm={confirmDelete}
         onCancel={() => setDeleting(null)}
         loading={deleteLoading}
@@ -377,11 +360,8 @@ function ChildrenTab() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   TEACHERS TAB  (unchanged logic, slightly better UX)
-   Accessible by: ADMIN only
-   ───────────────────────────────────────────────────────────────── */
 function TeachersTab() {
+  const { t } = useLanguage();
   const [rows,          setRows]          = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [page,          setPage]          = useState(0);
@@ -393,6 +373,8 @@ function TeachersTab() {
   const [deleting,      setDeleting]      = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [errors,        setErrors]        = useState({});
+
+  const entity = t('admin.entity.teacher');
 
   const load = (p = 0) => {
     setLoading(true);
@@ -406,7 +388,7 @@ function TeachersTab() {
   const openCreate = () => { setEditing(null); setForm({ name:'', village:'', contactNumber:'', email:'', classGroup:'', active:true, contactPublic:false }); setErrors({}); setModal(true); };
   const openEdit = (row) => { setEditing(row); setForm({ name: row.name, village: row.village||'', contactNumber: row.contactNumber||'', email: row.email||'', classGroup: row.classGroup||'', active: row.active, contactPublic: row.contactPublic }); setErrors({}); setModal(true); };
 
-  const validate = () => { const e = {}; if (!form.name.trim()) e.name = 'Name is required'; setErrors(e); return Object.keys(e).length === 0; };
+  const validate = () => { const e = {}; if (!form.name.trim()) e.name = t('admin.validate.nameRequired'); setErrors(e); return Object.keys(e).length === 0; };
 
   const save = async (e) => {
     e.preventDefault();
@@ -415,77 +397,82 @@ function TeachersTab() {
     try {
       if (editing) await sundaySchoolService.updateTeacher(editing.id, form);
       else await sundaySchoolService.createTeacher(form);
-      toast.success(editing ? 'Teacher updated successfully' : 'Teacher added successfully');
+      toast.success(t(editing ? 'admin.toast.updated' : 'admin.toast.created', { entity }));
       setModal(false); load(page);
-    } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
+    } catch (err) { toast.error(err.response?.data?.message || t('admin.toast.saveFailed')); }
     finally { setSaving(false); }
   };
 
   const confirmDelete = async () => {
     setDeleteLoading(true);
-    try { await sundaySchoolService.deleteTeacher(deleting.id); toast.success('Teacher deleted'); setDeleting(null); load(page); }
-    catch { toast.error('Delete failed'); } finally { setDeleteLoading(false); }
+    try { await sundaySchoolService.deleteTeacher(deleting.id); toast.success(t('admin.toast.deleted', { entity })); setDeleting(null); load(page); }
+    catch { toast.error(t('admin.toast.deleteFailed')); } finally { setDeleteLoading(false); }
   };
 
   const f = (key) => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
 
   const cols = [
-    { key: 'name',          label: 'Name' },
-    { key: 'village',       label: 'Village' },
-    { key: 'classGroup',    label: 'Class / Group' },
-    { key: 'contactNumber', label: 'Contact' },
-    { key: 'active', label: 'Status', render: r => <span className={`badge ${r.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{r.active ? '✓ Active' : '✗ Inactive'}</span> },
+    { key: 'name',          label: t('admin.col.name') },
+    { key: 'village',       label: t('admin.col.village'), render: r => r.village || '—' },
+    { key: 'classGroup',    label: t('admin.ss.classGroup'), render: r => r.classGroup || '—' },
+    { key: 'contactNumber', label: t('admin.pastor.contactNumber'), render: r => r.contactNumber || '—' },
+    { key: 'active', label: t('admin.col.status'), render: r => (
+      <span className={`pill ${r.active ? 'pill--success' : 'pill--muted'}`}>
+        {r.active ? t('admin.status.YES') : t('admin.pastor.inactive')}
+      </span>
+    ) },
   ];
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <button onClick={openCreate} className="btn-primary">+ Add Teacher</button>
+      <div className="admin-toolbar justify-end">
+        <button onClick={openCreate} className="btn-primary btn-sm">+ {t('admin.action.add', { entity })}</button>
       </div>
-      <AdminTable columns={cols} rows={rows} loading={loading} onEdit={openEdit} onDelete={setDeleting} />
+      <AdminTable columns={cols} rows={rows} loading={loading} onEdit={openEdit} onDelete={setDeleting}
+        emptyMessage={t('admin.empty.teachers')} />
       <Pagination page={page} totalPages={totalPages} onPageChange={load} />
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Edit Teacher' : 'Add Teacher'} size="lg">
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? t('admin.action.edit', { entity }) : t('admin.action.add', { entity })} size="lg">
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Name *</label>
-              <input className={`form-input ${errors.name ? 'border-red-400' : ''}`} placeholder="Teacher's full name" {...f('name')} />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              <label className="form-label" htmlFor="t-name">{t('admin.form.name')} *</label>
+              <input id="t-name" className={`form-input ${errors.name ? 'border-red-400' : ''}`} placeholder="Teacher's full name" {...f('name')} />
+              {errors.name && <p className="form-error">{errors.name}</p>}
             </div>
-            <div><label className="form-label">Village</label><input className="form-input" placeholder="e.g. Yerramalla" {...f('village')} /></div>
-            <div><label className="form-label">Contact Number</label><input className="form-input" placeholder="+91-9XXXXXXXXX" {...f('contactNumber')} /></div>
-            <div><label className="form-label">Email</label><input type="email" className="form-input" placeholder="teacher@example.com" {...f('email')} /></div>
-            <div className="md:col-span-2"><label className="form-label">Class / Group</label><input className="form-input" placeholder="e.g. Nursery, Primary…" {...f('classGroup')} /></div>
+            <div><label className="form-label" htmlFor="t-village">{t('admin.col.village')}</label><input id="t-village" className="form-input" placeholder="e.g. Yerramalla" {...f('village')} /></div>
+            <div><label className="form-label" htmlFor="t-contact">{t('admin.pastor.contactNumber')}</label><input id="t-contact" className="form-input" placeholder="+91-9XXXXXXXXX" {...f('contactNumber')} /></div>
+            <div><label className="form-label" htmlFor="t-email">{t('admin.col.email')}</label><input id="t-email" type="email" className="form-input" placeholder="teacher@example.com" {...f('email')} /></div>
+            <div className="md:col-span-2"><label className="form-label" htmlFor="t-class">{t('admin.ss.classGroup')}</label><input id="t-class" className="form-input" placeholder="e.g. Nursery, Primary…" {...f('classGroup')} /></div>
             <div className="md:col-span-2 flex items-center gap-6">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" className="rounded" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-                Active
+                {t('admin.col.active')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" className="rounded" checked={form.contactPublic} onChange={e => setForm(p => ({ ...p, contactPublic: e.target.checked }))} />
-                Show contact publicly
+                {t('admin.pastor.showContactPublic')}
               </label>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button type="button" onClick={() => setModal(false)} className="btn-secondary py-2 px-5 text-sm">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary py-2 px-5 text-sm">{saving ? 'Saving…' : editing ? 'Update Teacher' : 'Add Teacher'}</button>
+            <button type="button" onClick={() => setModal(false)} className="btn-secondary btn-sm">{t('common.cancel')}</button>
+            <button type="submit" disabled={saving} className="btn-primary btn-sm">
+              {saving ? t('admin.action.saving') : editing ? t('admin.action.update', { entity }) : t('admin.action.create', { entity })}
+            </button>
           </div>
         </form>
       </Modal>
 
-      <ConfirmDialog open={!!deleting} title="Delete Teacher" message={`Delete "${deleting?.name}"?`}
+      <ConfirmDialog open={!!deleting} title={t('admin.confirm.delete', { entity })}
+        message={deleting?.name ? t('admin.confirm.deleteNamed', { name: deleting.name }) : t('admin.confirm.deleteGeneric')}
         onConfirm={confirmDelete} onCancel={() => setDeleting(null)} loading={deleteLoading} />
     </>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   PROGRAMS TAB  (unchanged)
-   Accessible by: ADMIN only
-   ───────────────────────────────────────────────────────────────── */
 function ProgramsTab() {
+  const { t } = useLanguage();
   const [rows,          setRows]          = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [page,          setPage]          = useState(0);
@@ -499,6 +486,8 @@ function ProgramsTab() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [errors,        setErrors]        = useState({});
 
+  const entity = t('admin.entity.program');
+
   const load = (p = 0) => {
     setLoading(true);
     sundaySchoolService.listPrograms(p, 20)
@@ -511,7 +500,7 @@ function ProgramsTab() {
   const openCreate = () => { setEditing(null); setForm({ title:'', description:'', programDate:'', location:'', videoUrl:'', published:true }); setImageFile(null); setErrors({}); setModal(true); };
   const openEdit = (row) => { setEditing(row); setForm({ title: row.title, description: row.description||'', programDate: row.programDate||'', location: row.location||'', videoUrl: row.videoUrl||'', published: row.published }); setImageFile(null); setErrors({}); setModal(true); };
 
-  const validate = () => { const e = {}; if (!form.title.trim()) e.title = 'Title is required'; setErrors(e); return Object.keys(e).length === 0; };
+  const validate = () => { const e = {}; if (!form.title.trim()) e.title = t('admin.validate.titleRequired'); setErrors(e); return Object.keys(e).length === 0; };
 
   const save = async (e) => {
     e.preventDefault();
@@ -530,105 +519,108 @@ function ProgramsTab() {
         if (imageFile)        fd.append('file', imageFile);
         await sundaySchoolService.createProgram(fd);
       }
-      toast.success(editing ? 'Program updated successfully' : 'Program created successfully');
+      toast.success(t(editing ? 'admin.toast.updated' : 'admin.toast.created', { entity }));
       setModal(false); load(page);
-    } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
+    } catch (err) { toast.error(err.response?.data?.message || t('admin.toast.saveFailed')); }
     finally { setSaving(false); }
   };
 
   const confirmDelete = async () => {
     setDeleteLoading(true);
-    try { await sundaySchoolService.deleteProgram(deleting.id); toast.success('Program deleted'); setDeleting(null); load(page); }
-    catch { toast.error('Delete failed'); } finally { setDeleteLoading(false); }
+    try { await sundaySchoolService.deleteProgram(deleting.id); toast.success(t('admin.toast.deleted', { entity })); setDeleting(null); load(page); }
+    catch { toast.error(t('admin.toast.deleteFailed')); } finally { setDeleteLoading(false); }
   };
 
   const f = (key) => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
 
   const cols = [
-    { key: 'title',       label: 'Title' },
-    { key: 'programDate', label: 'Date' },
-    { key: 'location',    label: 'Location' },
-    { key: 'published', label: 'Status', render: r => <span className={`badge ${r.published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{r.published ? '✓ Published' : '○ Draft'}</span> },
+    { key: 'title',       label: t('admin.col.title') },
+    { key: 'programDate', label: t('admin.ss.programDate'), render: r => r.programDate || '—' },
+    { key: 'location',    label: t('admin.col.location'), render: r => r.location || '—' },
+    { key: 'published', label: t('admin.col.status'), render: r => (
+      <span className={`pill ${r.published ? 'pill--success' : 'pill--muted'}`}>
+        {r.published ? t('admin.sermon.published') : t('admin.sermon.draft')}
+      </span>
+    ) },
   ];
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <button onClick={openCreate} className="btn-primary">+ Add Program</button>
+      <div className="admin-toolbar justify-end">
+        <button onClick={openCreate} className="btn-primary btn-sm">+ {t('admin.action.add', { entity })}</button>
       </div>
-      <AdminTable columns={cols} rows={rows} loading={loading} onEdit={openEdit} onDelete={setDeleting} />
+      <AdminTable columns={cols} rows={rows} loading={loading} onEdit={openEdit} onDelete={setDeleting}
+        emptyMessage={t('admin.empty.programs')} />
       <Pagination page={page} totalPages={totalPages} onPageChange={load} />
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Edit Program' : 'Add Program'} size="lg">
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? t('admin.action.edit', { entity }) : t('admin.action.add', { entity })} size="lg">
         <form onSubmit={save} className="space-y-4">
           <div>
-            <label className="form-label">Title *</label>
-            <input className={`form-input ${errors.title ? 'border-red-400' : ''}`} placeholder="Program title" {...f('title')} />
-            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+            <label className="form-label" htmlFor="pg-title">{t('admin.col.title')} *</label>
+            <input id="pg-title" className={`form-input ${errors.title ? 'border-red-400' : ''}`} placeholder="Program title" {...f('title')} />
+            {errors.title && <p className="form-error">{errors.title}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="form-label">Program Date</label><input type="date" className="form-input" {...f('programDate')} /></div>
-            <div><label className="form-label">Location</label><input className="form-input" placeholder="Venue" {...f('location')} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="form-label" htmlFor="pg-date">{t('admin.ss.programDate')}</label><input id="pg-date" type="date" className="form-input" {...f('programDate')} /></div>
+            <div><label className="form-label" htmlFor="pg-loc">{t('admin.col.location')}</label><input id="pg-loc" className="form-input" placeholder="Venue" {...f('location')} /></div>
           </div>
-          <div><label className="form-label">Description</label><textarea rows={3} className="form-input resize-none" {...f('description')} /></div>
-          <div><label className="form-label">Video URL</label><input className="form-input" placeholder="https://youtube.com/…" {...f('videoUrl')} /></div>
+          <div><label className="form-label" htmlFor="pg-desc">{t('admin.form.description')}</label><textarea id="pg-desc" rows={3} className="form-input resize-none" {...f('description')} /></div>
+          <div><label className="form-label" htmlFor="pg-video">{t('admin.ss.videoUrl')}</label><input id="pg-video" className="form-input" placeholder="https://youtube.com/…" {...f('videoUrl')} /></div>
           {!editing && (
-            <div><label className="form-label">Image (optional)</label><input type="file" accept="image/jpeg,image/png,image/webp" className="form-input py-2" onChange={e => setImageFile(e.target.files[0])} /></div>
+            <div>
+              <label className="form-label" htmlFor="pg-img">{t('admin.ss.imageOptional')}</label>
+              <input id="pg-img" type="file" accept="image/jpeg,image/png,image/webp" className="form-input py-2" onChange={e => setImageFile(e.target.files[0])} />
+            </div>
           )}
           <div className="flex items-center gap-2">
             <input type="checkbox" id="ppub" className="rounded" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} />
-            <label htmlFor="ppub" className="text-sm text-gray-700">Published — visible on public website</label>
+            <label htmlFor="ppub" className="text-sm text-gray-700">{t('admin.sermon.publishedOn')}</label>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button type="button" onClick={() => setModal(false)} className="btn-secondary py-2 px-5 text-sm">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary py-2 px-5 text-sm">{saving ? 'Saving…' : editing ? 'Update Program' : 'Create Program'}</button>
+            <button type="button" onClick={() => setModal(false)} className="btn-secondary btn-sm">{t('common.cancel')}</button>
+            <button type="submit" disabled={saving} className="btn-primary btn-sm">
+              {saving ? t('admin.action.saving') : editing ? t('admin.action.update', { entity }) : t('admin.action.create', { entity })}
+            </button>
           </div>
         </form>
       </Modal>
 
-      <ConfirmDialog open={!!deleting} title="Delete Program" message={`Delete "${deleting?.title}"?`}
+      <ConfirmDialog open={!!deleting} title={t('admin.confirm.delete', { entity })}
+        message={deleting?.title ? t('admin.confirm.deleteNamed', { name: deleting.title }) : t('admin.confirm.deleteGeneric')}
         onConfirm={confirmDelete} onCancel={() => setDeleting(null)} loading={deleteLoading} />
     </>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   MAIN PAGE — tab routing
-   ───────────────────────────────────────────────────────────────── */
-const TABS = [
-  { key: 'children', label: '👶 Children', path: '/admin/sunday-school/children' },
-  { key: 'teachers', label: '👩‍🏫 Teachers', path: '/admin/sunday-school/teachers' },
-  { key: 'programs', label: '📖 Programs',  path: '/admin/sunday-school/programs' },
-];
-
 export default function AdminSundaySchoolPage() {
   const { section = 'children' } = useParams();
   const { isAdmin, isTeacher } = useAuth();
+  const { t } = useLanguage();
 
-  // Teachers see only the Children tab
+  const TABS = [
+    { key: 'children', label: t('admin.ss.tabChildren'), path: '/admin/sunday-school/children' },
+    { key: 'teachers', label: t('admin.ss.tabTeachers'), path: '/admin/sunday-school/teachers' },
+    { key: 'programs', label: t('admin.ss.tabPrograms'), path: '/admin/sunday-school/programs' },
+  ];
+
   const visibleTabs = isTeacher && !isAdmin
-    ? TABS.filter(t => t.key === 'children')
+    ? TABS.filter(tab => tab.key === 'children')
     : TABS;
+
+  const Restricted = ({ message }) => (
+    <div className="empty-state">
+      <LockClosedIcon className="empty-state__icon" />
+      <p className="empty-state__title">{message}</p>
+    </div>
+  );
 
   return (
     <div>
-      {/* Page header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2.5 rounded-xl bg-church-blue/10">
-          <AcademicCapIcon className="h-6 w-6 text-church-blue" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-church-blue" style={{ fontFamily: 'Lora, Georgia, serif' }}>
-            Sunday School
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Manage children, teachers and programs
-          </p>
-        </div>
+      <div className="page-header">
+        <p className="page-subtitle">{t('admin.pageDesc.sundaySchool')}</p>
       </div>
 
-      {/* Tab switcher */}
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 mb-6 bg-church-light p-1 rounded-xl w-fit border border-church-border">
         {visibleTabs.map(tab => (
           <Link
             key={tab.key}
@@ -644,20 +636,9 @@ export default function AdminSundaySchoolPage() {
         ))}
       </div>
 
-      {/* Tab content */}
       {section === 'children' && <ChildrenTab />}
-      {section === 'teachers' && (isAdmin ? <TeachersTab /> : (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🔒</p>
-          <p>Teachers section is accessible to administrators only.</p>
-        </div>
-      ))}
-      {section === 'programs' && (isAdmin ? <ProgramsTab /> : (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🔒</p>
-          <p>Programs section is accessible to administrators only.</p>
-        </div>
-      ))}
+      {section === 'teachers' && (isAdmin ? <TeachersTab /> : <Restricted message={t('admin.ss.teachersOnly')} />)}
+      {section === 'programs' && (isAdmin ? <ProgramsTab /> : <Restricted message={t('admin.ss.programsOnly')} />)}
     </div>
   );
 }

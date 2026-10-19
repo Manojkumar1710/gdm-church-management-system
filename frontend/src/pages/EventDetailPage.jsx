@@ -4,8 +4,9 @@ import { eventService } from '../services/eventService';
 import { Skeleton } from '../components/Skeleton';
 import ErrorState from '../components/ErrorState';
 import { CalendarIcon, MapPinIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useLanguage } from '../context/LanguageContext';
 
-function Lightbox({ photo, onClose }) {
+function Lightbox({ photo, onClose, t }) {
   useEffect(() => {
     const h = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', h);
@@ -17,7 +18,7 @@ function Lightbox({ photo, onClose }) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
       onClick={onClose}
     >
-      <button className="absolute top-4 right-4 text-white" aria-label="Close lightbox">
+      <button className="absolute top-4 right-4 text-white" aria-label={t('common.close')}>
         <XMarkIcon className="h-8 w-8" />
       </button>
       <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
@@ -39,6 +40,7 @@ function Lightbox({ photo, onClose }) {
 
 export default function EventDetailPage() {
   const { id } = useParams();
+  const { t, dateLocale } = useLanguage();
   const [event, setEvent] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function EventDetailPage() {
       eventService.getPhotos(id),
     ]).then(([eRes, pRes]) => {
       if (eRes.status === 'fulfilled') setEvent(eRes.value.data.data);
-      else setError('Event not found.');
+      else setError(t('events.noEvents'));
       if (pRes.status === 'fulfilled') setPhotos(pRes.value.data.data || []);
     }).finally(() => setLoading(false));
   };
@@ -69,9 +71,9 @@ export default function EventDetailPage() {
     </div>
   );
 
-  if (error || !event) return <ErrorState message={error || 'Event not found.'} onRetry={load} />;
+  if (error || !event) return <ErrorState message={error || t('events.noEvents')} onRetry={load} />;
 
-  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', {
+  const fmt = (d) => d ? new Date(d).toLocaleDateString(dateLocale, {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   }) : null;
 
@@ -79,7 +81,7 @@ export default function EventDetailPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
       {/* Back */}
       <Link to="/events" className="text-church-blue text-sm hover:underline mb-6 inline-block">
-        ← Back to Events
+        ← {t('events.title')}
       </Link>
 
       {/* Hero image */}
@@ -126,12 +128,6 @@ export default function EventDetailPage() {
               {event.location}
             </span>
           )}
-          {event.registrationRequired && (
-            <span className="badge bg-amber-100 text-amber-700">Registration Required</span>
-          )}
-          {event.capacity && (
-            <span className="text-gray-500">Capacity: {event.capacity}</span>
-          )}
         </div>
       </div>
 
@@ -146,7 +142,7 @@ export default function EventDetailPage() {
       {photos.length > 0 && (
         <div>
           <h2 className="text-2xl font-serif font-bold text-church-blue mb-6">
-            Event Photos
+            {t('photos.title')}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {photos.map(p => (
@@ -154,7 +150,7 @@ export default function EventDetailPage() {
                 key={p.id}
                 onClick={() => setLightbox(p)}
                 className="aspect-square rounded-lg overflow-hidden bg-gray-100 group"
-                aria-label={p.title || 'View photo'}
+                aria-label={p.title || t('common.viewAll')}
               >
                 <img
                   src={p.imageUrl}
@@ -169,7 +165,7 @@ export default function EventDetailPage() {
       )}
 
       {lightbox && (
-        <Lightbox photo={lightbox} onClose={() => setLightbox(null)} />
+        <Lightbox photo={lightbox} onClose={() => setLightbox(null)} t={t} />
       )}
     </div>
   );

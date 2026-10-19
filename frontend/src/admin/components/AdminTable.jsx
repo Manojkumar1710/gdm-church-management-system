@@ -1,4 +1,6 @@
+import { RectangleGroupIcon } from '@heroicons/react/24/outline';
 import { TableRowSkeleton } from '../../components/Skeleton';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Generic admin data table.
@@ -10,59 +12,70 @@ import { TableRowSkeleton } from '../../components/Skeleton';
  *   onDelete – (row) => void   (optional)
  *   actions  – extra (row) => JSX  (optional)
  */
-export default function AdminTable({ columns, rows, loading, onEdit, onDelete, actions, emptyMessage = 'No records found.' }) {
+export default function AdminTable({ columns, rows, loading, onEdit, onDelete, actions, emptyMessage, editLabel }) {
+  const { t } = useLanguage();
+  const empty = emptyMessage ?? t('admin.empty.generic');
+  const hasActions = Boolean(onEdit || onDelete || actions);
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm bg-white">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 border-b border-gray-100">
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
           <tr>
             {columns.map(col => (
-              <th key={col.key} className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
-                {col.label}
-              </th>
+              <th key={col.key} scope="col">{col.label}</th>
             ))}
-            {(onEdit || onDelete || actions) && (
-              <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+            {hasActions && (
+              <th scope="col" className="text-right">
+                <span className="sr-only">{editLabel ?? t('common.edit')}</span>
+              </th>
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody>
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
-              <TableRowSkeleton key={i} cols={columns.length + 1} />
+              <TableRowSkeleton key={i} cols={columns.length + (hasActions ? 1 : 0)} />
             ))
           ) : rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + 1} className="text-center py-12 text-gray-400">
-                {emptyMessage}
+              <td colSpan={columns.length + (hasActions ? 1 : 0)}>
+                <div className="empty-state">
+                  <span className="empty-state__icon">
+                    <RectangleGroupIcon className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <p className="empty-state__text">{empty}</p>
+                </div>
               </td>
             </tr>
           ) : (
             rows.map((row, i) => (
-              <tr key={row.id ?? i} className="hover:bg-gray-50 transition-colors">
+              <tr key={row.id ?? i}>
                 {columns.map(col => (
-                  <td key={col.key} className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                  <td key={col.key}>
                     {col.render ? col.render(row) : row[col.key] ?? '—'}
                   </td>
                 ))}
-                {(onEdit || onDelete || actions) && (
-                  <td className="px-4 py-3 text-right">
+                {hasActions && (
+                  <td className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       {actions?.(row)}
                       {onEdit && (
                         <button
+                          type="button"
                           onClick={() => onEdit(row)}
-                          className="px-3 py-1 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-medium"
+                          className="admin-btn"
                         >
-                          Edit
+                          {editLabel ?? t('common.edit')}
                         </button>
                       )}
                       {onDelete && (
                         <button
+                          type="button"
                           onClick={() => onDelete(row)}
-                          className="px-3 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium"
+                          className="admin-btn admin-btn--danger"
                         >
-                          Delete
+                          {t('common.delete')}
                         </button>
                       )}
                     </div>

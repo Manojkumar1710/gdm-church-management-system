@@ -10,11 +10,13 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -23,7 +25,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthFilter     jwtAuthFilter;
+    private final RateLimitFilter   rateLimitFilter;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
     private final CorsConfigurationSource corsConfigurationSource;
 
@@ -44,6 +47,26 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))
+
+            // ── Security headers ─────────────────────────────────────────
+            .headers(headers -> headers
+                // Prevent MIME-type sniffing
+                .contentTypeOptions(HeadersConfigurer.ContentTypeOptionsConfig::disable)
+                .contentTypeOptions(opt -> {})  // re-enables nosniff
+                .frameOptions(fo -> fo.sameOrigin())
+                .referrerPolicy(rp ->
+                    rp.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000))
+                // Content-Security-Policy — allows the API itself; frontend CSP is separate
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                    "default-src 'none'; " +
+                    "frame-ancestors 'none'; " +
+                    "base-uri 'none'"
+                ))
+            )
+
             .authorizeHttpRequests(auth -> auth
 
                 // Public auth
@@ -67,17 +90,19 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/prayer-requests").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/contact-messages").permitAll()
 
-                // Swagger/OpenAPI
+                // Swagger/OpenAPI — controlled by SWAGGER_ENABLED env var
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
 
                 // Sunday School — ADMIN or SUNDAY_SCHOOL_TEACHER
                 .requestMatchers("/api/v1/admin/sunday-school/**")
-                    .hasAnyRole("ADMIN", "SUNDAY_SCHOOL_TEACHER")
+                    .hasAnyRole("ADMIN", "SUPER_ADMIN", "SUNDAY_SCHOOL_TEACHER")
 
                 // Everything else requires ADMIN role
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                .anyRequest().hasRole("ADMIN")
+                .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .anyRequest().hasAnyRole("ADMIN", "SUPER_ADMIN")
             )
+            // Rate limiter runs before JWT filter
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

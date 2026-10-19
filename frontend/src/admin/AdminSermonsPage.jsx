@@ -5,7 +5,8 @@ import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
-import { getYoutubeId, getYoutubeThumbnail } from '../utils/youtube';
+import { useLanguage } from '../context/LanguageContext';
+import { getYoutubeThumbnail } from '../utils/youtube';
 
 const EMPTY = {
   title: '', description: '', speaker: '', sermonDate: '',
@@ -13,6 +14,7 @@ const EMPTY = {
 };
 
 export default function AdminSermonsPage() {
+  const { t } = useLanguage();
   const [rows,         setRows]         = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [page,         setPage]         = useState(0);
@@ -26,6 +28,8 @@ export default function AdminSermonsPage() {
   const [thumbFile,    setThumbFile]    = useState(null);
   const [thumbPreview, setThumbPreview] = useState(null);
   const [errors,       setErrors]       = useState({});
+
+  const entity = t('admin.entity.sermon');
 
   const load = (p = 0) => {
     setLoading(true);
@@ -58,7 +62,7 @@ export default function AdminSermonsPage() {
 
   const validate = () => {
     const e = {};
-    if (!form.title.trim()) e.title = 'Sermon title is required';
+    if (!form.title.trim()) e.title = t('admin.validate.titleRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -72,11 +76,11 @@ export default function AdminSermonsPage() {
       if (editing) saved = await sermonService.update(editing.id, form);
       else         saved = await sermonService.create(form);
       if (thumbFile) await sermonService.uploadThumbnail(saved.data.data.id, thumbFile);
-      toast.success(editing ? 'Sermon updated' : 'Sermon created');
+      toast.success(t(editing ? 'admin.toast.updated' : 'admin.toast.created', { entity }));
       setModal(false);
       load(page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      toast.error(err.response?.data?.message || t('admin.toast.saveFailed'));
     } finally { setSaving(false); }
   };
 
@@ -87,7 +91,6 @@ export default function AdminSermonsPage() {
     setThumbPreview(URL.createObjectURL(file));
   };
 
-  // Auto-preview YouTube thumbnail when URL is typed
   const handleVideoUrl = (url) => {
     setForm(p => ({ ...p, videoUrl: url }));
     if (!thumbFile) {
@@ -98,122 +101,111 @@ export default function AdminSermonsPage() {
 
   const confirmDelete = async () => {
     setDeleteLoading(true);
-    try { await sermonService.delete(deleting.id); toast.success('Sermon deleted'); setDeleting(null); load(page); }
-    catch { toast.error('Delete failed'); } finally { setDeleteLoading(false); }
+    try { await sermonService.delete(deleting.id); toast.success(t('admin.toast.deleted', { entity })); setDeleting(null); load(page); }
+    catch { toast.error(t('admin.toast.deleteFailed')); } finally { setDeleteLoading(false); }
   };
 
   const f = (key) => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
 
   const cols = [
     {
-      key: 'thumbnailUrl', label: 'Thumb',
+      key: 'thumbnailUrl', label: t('admin.col.image'),
       render: r => {
         const thumb = r.thumbnailUrl || getYoutubeThumbnail(r.videoUrl);
         return thumb
-          ? <img src={thumb} alt={r.title} className="h-10 w-16 rounded-lg object-cover border border-gray-100" onError={e => e.currentTarget.style.display='none'} />
-          : <div className="h-10 w-16 rounded-lg bg-church-blue/10 flex items-center justify-center text-lg">📖</div>;
+          ? <img src={thumb} alt={r.title} className="h-10 w-16 rounded-lg object-cover border border-church-border" onError={e => e.currentTarget.style.display='none'} />
+          : <div className="h-10 w-16 rounded-lg bg-church-blue/10 flex items-center justify-center text-xs font-semibold text-church-blue">{t('admin.sermon.draft')}</div>;
       },
     },
-    { key: 'title',   label: 'Title' },
-    { key: 'speaker', label: 'Speaker' },
-    { key: 'sermonDate', label: 'Date' },
+    { key: 'title',   label: t('admin.col.title') },
+    { key: 'speaker', label: t('admin.sermon.speaker'), render: r => r.speaker || '—' },
+    { key: 'sermonDate', label: t('admin.col.date') },
     {
-      key: 'published', label: 'Status',
-      render: r => <span className={`badge ${r.published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-        {r.published ? '✓ Published' : '○ Draft'}
+      key: 'published', label: t('admin.col.status'),
+      render: r => <span className={`pill ${r.published ? 'pill--success' : 'pill--muted'}`}>
+        {r.published ? t('admin.sermon.published') : t('admin.sermon.draft')}
       </span>,
     },
   ];
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-church-blue" style={{ fontFamily: 'Lora, serif' }}>Sermons</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Manage sermon records and YouTube videos</p>
-        </div>
-        <button onClick={openCreate} className="btn-primary">+ Add Sermon</button>
+      <div className="page-header">
+        <p className="page-subtitle">{t('admin.pageDesc.sermons')}</p>
+        <button onClick={openCreate} className="btn-primary btn-sm">+ {t('admin.action.add', { entity })}</button>
       </div>
 
-      <AdminTable columns={cols} rows={rows} loading={loading} onEdit={openEdit} onDelete={setDeleting} />
+      <AdminTable columns={cols} rows={rows} loading={loading} onEdit={openEdit} onDelete={setDeleting}
+        emptyMessage={t('admin.empty.sermons')} />
       <Pagination page={page} totalPages={totalPages} onPageChange={load} />
 
-      {/* ── Form modal ── */}
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Edit Sermon' : 'Add Sermon'} size="lg">
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? t('admin.action.edit', { entity }) : t('admin.action.add', { entity })} size="lg">
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Title — full width, clear placeholder */}
             <div className="md:col-span-2">
-              <label className="form-label">Sermon Title *</label>
+              <label className="form-label" htmlFor="s-title">{t('admin.col.title')} *</label>
               <input
+                id="s-title"
                 className={`form-input ${errors.title ? 'border-red-400' : ''}`}
                 placeholder="e.g. Walking by Faith — Sunday Message"
                 value={form.title}
                 onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
               />
               {errors.title
-                ? <p className="text-red-500 text-xs mt-1">{errors.title}</p>
-                : <p className="text-gray-400 text-xs mt-1">Type the sermon title — not the YouTube URL</p>
+                ? <p className="form-error">{errors.title}</p>
+                : <p className="text-gray-400 text-xs mt-1">{t('admin.sermon.titleHint')}</p>
               }
             </div>
 
-            {/* Speaker */}
             <div>
-              <label className="form-label">Speaker / Pastor</label>
-              <input className="form-input" placeholder="e.g. Bro. Raj Prakash Paul" {...f('speaker')} />
+              <label className="form-label" htmlFor="s-speaker">{t('admin.sermon.speaker')}</label>
+              <input id="s-speaker" className="form-input" placeholder="e.g. Bro. Raj Prakash Paul" {...f('speaker')} />
             </div>
 
-            {/* Date */}
             <div>
-              <label className="form-label">Sermon Date</label>
-              <input type="date" className="form-input" {...f('sermonDate')} />
+              <label className="form-label" htmlFor="s-date">{t('admin.form.date')}</label>
+              <input id="s-date" type="date" className="form-input" {...f('sermonDate')} />
             </div>
 
-            {/* YouTube URL — full width */}
             <div className="md:col-span-2">
-              <label className="form-label">YouTube / Video URL</label>
+              <label className="form-label" htmlFor="s-video">{t('admin.sermon.videoUrl')}</label>
               <input
+                id="s-video"
                 className="form-input"
                 placeholder="https://youtube.com/watch?v=XXXXXXXXXXX"
                 value={form.videoUrl}
                 onChange={e => handleVideoUrl(e.target.value)}
               />
-              <p className="text-gray-400 text-xs mt-1">
-                Paste the full YouTube link here. The thumbnail will auto-load below.
-              </p>
+              <p className="text-gray-400 text-xs mt-1">{t('admin.sermon.urlHint')}</p>
             </div>
 
-            {/* Thumbnail preview (auto from YouTube or uploaded) */}
             {thumbPreview && (
               <div className="md:col-span-2">
-                <p className="form-label">Thumbnail Preview</p>
+                <p className="form-label">{t('admin.sermon.thumbPreview')}</p>
                 <img
                   src={thumbPreview}
-                  alt="thumbnail"
-                  className="h-32 rounded-xl object-cover border border-gray-200"
+                  alt={t('admin.sermon.thumbPreview')}
+                  className="h-32 rounded-xl object-cover border border-church-border"
                   onError={e => { e.currentTarget.style.display = 'none'; }}
                 />
               </div>
             )}
 
-            {/* Duration */}
             <div>
-              <label className="form-label">Duration</label>
-              <input className="form-input" placeholder="e.g. 45:00 or 1hr 20min" {...f('duration')} />
+              <label className="form-label" htmlFor="s-duration">{t('admin.sermon.duration')}</label>
+              <input id="s-duration" className="form-input" placeholder="e.g. 45:00 or 1hr 20min" {...f('duration')} />
             </div>
 
-            {/* Audio URL */}
             <div>
-              <label className="form-label">Audio URL (optional)</label>
-              <input className="form-input" placeholder="https://..." {...f('audioUrl')} />
+              <label className="form-label" htmlFor="s-audio">{t('admin.sermon.audioUrl')}</label>
+              <input id="s-audio" className="form-input" placeholder="https://..." {...f('audioUrl')} />
             </div>
 
-            {/* Description */}
             <div className="md:col-span-2">
-              <label className="form-label">Description (optional)</label>
+              <label className="form-label" htmlFor="s-desc">{t('admin.form.description')} ({t('common.optional')})</label>
               <textarea
+                id="s-desc"
                 rows={3}
                 className="form-input resize-none"
                 placeholder="Brief description of the sermon topic…"
@@ -221,21 +213,18 @@ export default function AdminSermonsPage() {
               />
             </div>
 
-            {/* Thumbnail upload (overrides YouTube auto-thumb) */}
             <div className="md:col-span-2">
-              <label className="form-label">Upload Custom Thumbnail (optional)</label>
+              <label className="form-label" htmlFor="s-thumb">{t('admin.sermon.customThumb')}</label>
               <input
+                id="s-thumb"
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/webp"
                 className="form-input py-2 cursor-pointer"
                 onChange={handleThumbFile}
               />
-              <p className="text-gray-400 text-xs mt-1">
-                Leave empty to use the YouTube thumbnail automatically.
-              </p>
+              <p className="text-gray-400 text-xs mt-1">{t('admin.sermon.customThumbHint')}</p>
             </div>
 
-            {/* Published */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className={`relative w-10 h-5 rounded-full transition-colors ${form.published ? 'bg-church-blue' : 'bg-gray-200'}`}>
@@ -248,16 +237,16 @@ export default function AdminSermonsPage() {
                   onChange={e => setForm(p => ({ ...p, published: e.target.checked }))}
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  {form.published ? '✓ Published — visible on website' : '○ Draft — not visible yet'}
+                  {form.published ? t('admin.sermon.publishedOn') : t('admin.sermon.draftOff')}
                 </span>
               </label>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button type="button" onClick={() => setModal(false)} className="btn-secondary py-2 px-5 text-sm">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary py-2 px-5 text-sm">
-              {saving ? 'Saving…' : editing ? 'Update Sermon' : 'Create Sermon'}
+            <button type="button" onClick={() => setModal(false)} className="btn-secondary btn-sm">{t('common.cancel')}</button>
+            <button type="submit" disabled={saving} className="btn-primary btn-sm">
+              {saving ? t('admin.action.saving') : editing ? t('admin.action.update', { entity }) : t('admin.action.create', { entity })}
             </button>
           </div>
         </form>
@@ -265,8 +254,8 @@ export default function AdminSermonsPage() {
 
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Sermon"
-        message={`Delete "${deleting?.title}"? This cannot be undone.`}
+        title={t('admin.confirm.delete', { entity })}
+        message={deleting?.title ? t('admin.confirm.deleteNamed', { name: deleting.title }) : t('admin.confirm.deleteGeneric')}
         onConfirm={confirmDelete}
         onCancel={() => setDeleting(null)}
         loading={deleteLoading}

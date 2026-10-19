@@ -1,7 +1,7 @@
 # GDM Church — Implementation Plan
 Version: 2.0 (updated after Phase 1–16 completion)
 Date: September 2026
-Author: Kiro AI (Lead Full-Stack Engineer)
+Author: Manoj Kumar Akula (Lead Full-Stack Engineer)
 
 ---
 

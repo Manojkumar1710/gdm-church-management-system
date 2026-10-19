@@ -1,132 +1,419 @@
-/* ── Google Fonts — must be first ────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;500;600;700&display=swap');
+/* ── Google Fonts — must be first ──────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Base ──────────────────────────────────────────────────────── */
 @layer base {
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   body {
-    @apply text-gray-800 bg-white;
-    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #fdfaf3;
+    @apply text-gray-800;
+    font-family: 'Inter', 'Noto Sans Telugu', system-ui, sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Lora', Georgia, serif;
   }
+  :target { scroll-margin-top: 5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
+/* ── Components ────────────────────────────────────────────────── */
 @layer components {
 
-  /* ── Buttons ──────────────────────────────────────────── */
+  /* ══ BUTTONS ════════════════════════════════════════════════
+   * rounded-xl (12 px) — softer than a rectangle, not a pill.
+   * Only transform + opacity animate (GPU-friendly).
+   * ══════════════════════════════════════════════════════════ */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-xl
            bg-church-blue text-white font-semibold text-sm tracking-wide
-           transition-all duration-200 shadow-sm
-           hover:bg-[#162d4a] hover:shadow-md
+           shadow-card
            focus:outline-none focus:ring-2 focus:ring-church-blue focus:ring-offset-2
-           active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 300ms cubic-bezier(0.22,1,0.36,1),
+                background-color 200ms ease,
+                opacity 200ms ease;
   }
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-navy-900 shadow-card-hover -translate-y-0.5;
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.97);
+    @apply shadow-card;
+  }
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-xl
            border-2 border-church-blue text-church-blue font-semibold text-sm tracking-wide
-           transition-all duration-200
-           hover:bg-church-blue hover:text-white hover:shadow-sm
            focus:outline-none focus:ring-2 focus:ring-church-blue focus:ring-offset-2
-           active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 300ms cubic-bezier(0.22,1,0.36,1),
+                background-color 200ms ease,
+                color 200ms ease;
   }
+  .btn-secondary:hover:not(:disabled) {
+    @apply bg-church-blue text-white shadow-card -translate-y-0.5;
+  }
+  .btn-secondary:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
   .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-xl
            bg-church-gold text-white font-semibold text-sm tracking-wide
-           transition-all duration-200 shadow-sm
-           hover:bg-[#b8943f] hover:shadow-md
-           focus:outline-none focus:ring-2 focus:ring-church-gold focus:ring-offset-2
-           active:scale-[0.98];
+           shadow-card
+           focus:outline-none focus:ring-2 focus:ring-church-gold focus:ring-offset-2;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 300ms cubic-bezier(0.22,1,0.36,1),
+                background-color 200ms ease;
   }
-  .btn-sm {
-    @apply px-4 py-1.5 text-xs;
+  .btn-gold:hover {
+    background-color: #b8943f;
+    @apply shadow-card-hover -translate-y-0.5;
+  }
+  .btn-gold:active {
+    transform: scale(0.97);
   }
 
-  /* ── Cards ────────────────────────────────────────────── */
+  /* ══ CARDS ══════════════════════════════════════════════════
+   * Two variants:
+   *   .card        — white on light background (cream/white sections)
+   *   .card-dark   — translucent on dark background (navy band)
+   * Radius: rounded-3xl (24 px) for content cards.
+   * Admin uses rounded-2xl (16 px) for compact density.
+   * ══════════════════════════════════════════════════════════ */
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden
-           transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+    @apply bg-white rounded-3xl overflow-hidden;
+    box-shadow: 0 2px 8px -2px rgba(22,45,74,0.10),
+                0 0 0 1px rgba(22,45,74,0.05);
+    transition: transform 400ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 400ms cubic-bezier(0.22,1,0.36,1);
   }
-  .card-flat {
-    @apply bg-white rounded-2xl border border-gray-100 overflow-hidden;
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px -12px rgba(22,45,74,0.25),
+                0 0 0 1px rgba(22,45,74,0.08);
   }
 
-  /* ── Section headers ──────────────────────────────────── */
-  .section-header {
-    @apply text-center mb-12;
+  /* Card on navy/dark band: subtle gradient + blur */
+  .card-dark {
+    background: linear-gradient(145deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.14);
+    @apply rounded-3xl overflow-hidden;
+    box-shadow: 0 4px 20px -6px rgba(0,0,0,0.30);
+    transition: transform 400ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 400ms cubic-bezier(0.22,1,0.36,1),
+                background 300ms ease;
   }
-  .section-header h2 {
+  .card-dark:hover {
+    transform: translateY(-4px);
+    background: linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
+    box-shadow: 0 8px 30px -8px rgba(0,0,0,0.40);
+  }
+
+  /* Image zoom inside card */
+  .card-image { @apply overflow-hidden; }
+  .card-image img {
+    transition: transform 700ms cubic-bezier(0.22,1,0.36,1);
+  }
+  .card:hover .card-image img,
+  .card-dark:hover .card-image img {
+    transform: scale(1.05);
+  }
+
+  /* Admin card — compact, rounded-2xl */
+  .card-flat {
+    @apply bg-white rounded-2xl border border-church-border overflow-hidden;
+  }
+
+  /* ══ SECTION HEADERS ════════════════════════════════════════ */
+  .section-header          { @apply text-center mb-12; }
+  .section-header h2       {
     @apply text-3xl md:text-4xl font-bold text-church-blue mb-3;
     font-family: 'Lora', Georgia, serif;
   }
-  .section-header p {
-    @apply text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed;
-  }
+  .section-header p        { @apply text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed; }
+  .section-header--light h2{ @apply text-white; }
+  .section-header--light p { @apply text-white/65; }
 
-  /* ── Forms ────────────────────────────────────────────── */
+  /* ══ FORMS ══════════════════════════════════════════════════ */
   .form-input {
-    @apply w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800
-           bg-white
-           focus:outline-none focus:ring-2 focus:ring-church-blue/30 focus:border-church-blue
-           placeholder-gray-400 transition-all duration-150;
+    @apply w-full px-4 py-2.5 border border-church-border rounded-2xl
+           text-sm text-gray-800 bg-white placeholder-gray-400 outline-none;
+    transition: border-color 250ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow   250ms cubic-bezier(0.22,1,0.36,1);
   }
-  .form-input:hover {
-    @apply border-gray-300;
-  }
-  .form-label {
-    @apply block text-sm font-semibold text-gray-700 mb-1.5;
-  }
-  .form-error {
-    @apply text-red-500 text-xs mt-1 flex items-center gap-1;
-  }
+  .form-input:hover  { border-color: #a0b4cc; }
+  .form-input:focus  { border-color: #1e3a5f; box-shadow: 0 0 0 3px rgba(30,58,95,0.12); }
+  .form-label        { @apply block text-sm font-semibold text-gray-700 mb-1.5; }
+  .form-error        { @apply text-red-500 text-xs mt-1 flex items-center gap-1; }
 
-  /* ── Badges ───────────────────────────────────────────── */
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
-  }
+  /* ══ MISC ══════════════════════════════════════════════════ */
+  .badge   { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+  .divider { @apply border-t border-church-border my-6; }
 
-  /* ── Divider ──────────────────────────────────────────── */
-  .divider {
-    @apply border-t border-gray-100 my-6;
-  }
+  /* ══════════════════════════════════════════════════════════
+   * ADMIN DESIGN SYSTEM
+   * Reuses the public site tokens (church-blue / church-gold /
+   * church-cream / church-border) so the admin panel reads as the
+   * management area of the same website.
+   * ══════════════════════════════════════════════════════════ */
 
-  /* ── Admin table ──────────────────────────────────────── */
-  .admin-table th {
-    @apply text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider
-           bg-gray-50 border-b border-gray-100;
+  /* ── Shell ─────────────────────────────────────────────── */
+  .admin-shell    { @apply flex h-screen overflow-hidden; background-color: #fdfaf3; }
+  .admin-sidebar  {
+    @apply w-[264px] shrink-0 flex-col hidden lg:flex;
+    background: linear-gradient(180deg, #1e3a5f 0%, #162d4a 100%);
   }
-  .admin-table td {
-    @apply px-4 py-3 text-sm text-gray-700 border-b border-gray-50;
+  .admin-drawer   {
+    @apply relative flex w-72 max-w-[85vw] shrink-0 flex-col shadow-2xl;
+    background: linear-gradient(180deg, #1e3a5f 0%, #162d4a 100%);
   }
-  .admin-table tr:hover td {
-    @apply bg-gray-50/60;
+  .admin-topbar   {
+    @apply sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3
+           border-b border-church-border bg-white/90 px-4 sm:px-6 lg:px-8;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
+  .admin-main     { @apply flex-1 overflow-y-auto overflow-x-hidden; }
+  .admin-container{ @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-6 sm:py-7; }
 
-  /* ── Page header ──────────────────────────────────────── */
-  .page-header {
-    @apply flex items-center justify-between mb-6 flex-wrap gap-3;
+  /* ── Sidebar brand ─────────────────────────────────────── */
+  .admin-emblem {
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg text-church-gold;
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.38);
   }
-  .page-title {
-    @apply text-2xl font-bold text-church-blue;
+  .admin-brand-name {
+    @apply text-[15px] font-bold leading-tight text-white;
     font-family: 'Lora', Georgia, serif;
   }
-  .page-subtitle {
-    @apply text-gray-500 text-sm mt-0.5;
+  .admin-brand-tag {
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em];
+    color: #c9a84c;
+  }
+
+  /* ── Sidebar navigation ────────────────────────────────── */
+  .admin-nav-scroll { @apply flex-1 space-y-6 overflow-y-auto px-3 py-4; }
+  .admin-nav-title  {
+    @apply mb-2 block px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40;
+  }
+  .admin-nav-item {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium
+           text-white/60 transition-colors duration-150;
+    min-width: 0;
+  }
+  .admin-nav-item:hover { @apply bg-white/10 text-white; }
+  .admin-nav-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(201,168,76,0.85);
+  }
+  .admin-nav-item.is-active {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(201,168,76,0.22) 0%, rgba(255,255,255,0.07) 100%);
+    box-shadow: inset 3px 0 0 0 #c9a84c;
+  }
+  .admin-nav-label { @apply truncate; }
+
+  .admin-sidebar-foot {
+    @apply shrink-0 space-y-1 border-t border-white/10 bg-black/15 px-3 py-3;
+  }
+
+  /* ── Header / breadcrumb ───────────────────────────────── */
+  .admin-crumb         { @apply text-[10px] font-bold uppercase tracking-[0.18em] text-church-gold; }
+  .admin-header-title  { @apply truncate text-[17px] font-bold leading-tight text-church-blue; font-family: 'Lora', Georgia, serif; }
+
+  /* ── Page header (content area) ────────────────────────── */
+  .page-header {
+    @apply mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-church-border pb-5;
+  }
+  .page-title {
+    @apply text-2xl font-bold leading-snug text-church-blue;
+    font-family: 'Lora', Georgia, serif;
+  }
+  .page-subtitle { @apply mt-1 max-w-3xl text-sm text-gray-500; }
+
+  /* ── Surfaces ──────────────────────────────────────────── */
+  .admin-card {
+    @apply rounded-2xl border border-church-border bg-white shadow-card;
+    min-width: 0;
+  }
+  .admin-card-pad { @apply p-5; }
+  .admin-toolbar  { @apply mb-5 flex flex-wrap items-center gap-3; }
+  .admin-section-title {
+    @apply mb-4 text-base font-bold text-church-blue;
+    font-family: 'Lora', Georgia, serif;
+  }
+
+  /* ── Stat cards ────────────────────────────────────────── */
+  .stat-card {
+    @apply relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border
+           border-church-border bg-white p-5 shadow-card;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 300ms cubic-bezier(0.22,1,0.36,1);
+  }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px -12px rgba(22,45,74,0.25), 0 0 0 1px rgba(22,45,74,0.08); }
+  .stat-card:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(201,168,76,0.55), 0 0 0 1px rgba(22,45,74,0.08); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1e3a5f 0%, #c9a84c 100%);
+    opacity: .75;
+  }
+  .stat-card__icon {
+    @apply grid h-11 w-11 place-items-center rounded-xl border border-church-border bg-church-light text-church-blue;
+  }
+  .stat-card__value { @apply font-serif text-[28px] font-bold leading-none text-church-blue; font-variant-numeric: tabular-nums; }
+  .stat-card__label { @apply text-[13px] font-medium leading-snug text-gray-600; }
+
+  /* ── Buttons ───────────────────────────────────────────── */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-2.5
+           text-sm font-semibold tracking-wide text-white shadow-card
+           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 300ms cubic-bezier(0.22,1,0.36,1),
+                background-color 200ms ease;
+  }
+  .btn-danger:hover:not(:disabled) { @apply bg-red-700 shadow-card-hover -translate-y-0.5; }
+  .btn-danger:active:not(:disabled) { transform: scale(0.97); }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm
+           font-semibold text-church-blue transition-colors
+           hover:bg-navy-50 focus:outline-none focus:ring-2 focus:ring-church-blue focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .icon-btn {
+    @apply inline-grid h-9 w-9 place-items-center rounded-xl border border-church-border
+           bg-white text-gray-600 transition-colors
+           hover:bg-church-light hover:text-church-blue
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-church-gold;
+  }
+
+  /* Compact surface button — table actions, pagination, filters */
+  .admin-btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-church-border
+           bg-white px-3 py-1.5 text-xs font-semibold text-church-blue transition-colors
+           hover:bg-church-light hover:text-church-blue
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-church-gold
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .admin-btn--danger { @apply border-transparent bg-red-50 text-red-600 hover:border-red-200 hover:bg-red-100 hover:text-red-700; }
+  .admin-btn--gold   { @apply border-church-gold/50 bg-church-gold/10 text-[#8a6b1c] hover:bg-church-gold/20; }
+  .admin-btn--lg     { @apply px-4 py-2 text-sm; }
+
+  /* ── Status pills ──────────────────────────────────────── */
+  .pill { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold; }
+  .pill--navy   { @apply border-navy-200 bg-navy-50 text-church-blue; }
+  .pill--gold   { @apply border-church-gold/45 bg-church-gold/10 text-[#8a6b1c]; }
+  .pill--success{ @apply border-emerald-200 bg-emerald-50 text-emerald-700; }
+  .pill--warn   { @apply border-amber-200 bg-amber-50 text-amber-700; }
+  .pill--info   { @apply border-sky-200 bg-sky-50 text-sky-700; }
+  .pill--danger { @apply border-red-200 bg-red-50 text-red-600; }
+  .pill--muted  { @apply border-church-border bg-church-light text-gray-600; }
+
+  /* Compact select — inline status/quick filters */
+  .inline-select {
+    @apply rounded-lg border border-church-border bg-white px-2 py-1.5 text-xs font-semibold
+           text-church-blue outline-none transition-colors
+           hover:bg-church-light
+           focus-visible:ring-2 focus-visible:ring-church-gold;
+  }
+
+  /* Filter pill (multi-select style row) */
+  .filter-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-church-border bg-white
+           px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors
+           hover:border-navy-300 hover:text-church-blue
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-church-gold;
+  }
+  .filter-pill.is-active {
+    @apply border-church-blue bg-church-blue text-white;
+    box-shadow: 0 0 0 2px rgba(30,58,95,0.18);
+  }
+
+  /* ── Table ─────────────────────────────────────────────── */
+  .admin-table-wrap {
+    @apply overflow-x-auto rounded-2xl border border-church-border bg-white shadow-card;
+  }
+  .admin-table { @apply w-full border-collapse text-sm; }
+  .admin-table th {
+    @apply whitespace-nowrap bg-church-light px-4 py-3 text-left text-xs font-bold
+           uppercase tracking-wider text-gray-500 border-b border-church-border;
+  }
+  .admin-table td { @apply px-4 py-3 align-middle text-sm text-gray-700 border-b border-church-border/70; }
+  .admin-table tbody tr:last-child td { border-bottom: 0; }
+  .admin-table tbody tr:hover td { background-color: rgba(244,247,251,0.75); }
+
+  /* ── Empty / loading / feedback ────────────────────────── */
+  .empty-state { @apply flex flex-col items-center justify-center gap-3 px-6 py-14 text-center; }
+  .empty-state__icon {
+    @apply grid h-14 w-14 place-items-center rounded-2xl border border-church-border bg-church-light text-church-blue;
+  }
+  .empty-state__title { @apply font-serif text-base font-bold text-church-blue; }
+  .empty-state__text  { @apply max-w-sm text-sm text-gray-500; }
+
+  .admin-alert {
+    @apply flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm;
+  }
+  .admin-alert--warn { @apply border-amber-200 bg-amber-50 text-amber-800; }
+  .admin-alert--error{ @apply border-red-200 bg-red-50 text-red-700; }
+  .admin-alert--info { @apply border-church-border bg-church-light text-gray-700; }
+
+  /* ── Dialog ────────────────────────────────────────────── */
+  .dialog-panel {
+    @apply w-full rounded-2xl border border-church-border bg-white p-6 shadow-2xl;
+  }
+  .dialog-title { @apply font-serif text-lg font-bold text-church-blue; }
+
+  /* ── Size modifier — declared last so it wins over any variant ── */
+  .btn-sm { @apply px-4 py-1.5 text-xs; }
+
+  /* ══ GLASS (hero service-times card) ═══════════════════ */
+  .glass {
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.22);
+    @apply rounded-3xl;
+    box-shadow: 0 4px 24px 0 rgba(0,0,0,0.20);
+  }
+
+  /* ══ PASTOR AVATAR GLOW ═════════════════════════════════ */
+  .avatar-glow {
+    box-shadow: 0 0 0 3px #c9a84c, 0 0 0 5px rgba(201,168,76,0.22),
+                0 4px 16px rgba(0,0,0,0.18);
   }
 }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { @apply bg-gray-100; }
-::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar            { width: 6px; height: 6px; }
+::-webkit-scrollbar-track      { background: #f0f4fb; }
+::-webkit-scrollbar-thumb      { background: #b9cde9; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover{ background: #88a8d5; }

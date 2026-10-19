@@ -1,59 +1,68 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   HomeIcon, CalendarIcon, PhotoIcon, UserGroupIcon, BookOpenIcon,
   PlayIcon, RectangleGroupIcon, BanknotesIcon, HandRaisedIcon,
   EnvelopeIcon, AcademicCapIcon, Bars3Icon, XMarkIcon,
-  ArrowRightOnRectangleIcon, ChevronLeftIcon, GlobeAltIcon,
+  ArrowRightOnRectangleIcon, GlobeAltIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
+/* Nav group definitions — `key` values are i18n keys under admin.nav */
 const NAV_GROUPS = [
   {
-    label: 'Content',
+    key: 'content',
     items: [
-      { label: 'Dashboard',     to: '/admin/dashboard',             icon: HomeIcon },
-      { label: 'Events',        to: '/admin/events',                icon: CalendarIcon },
-      { label: 'Event Photos',  to: '/admin/event-photos',          icon: PhotoIcon },
-      { label: 'Pastors',       to: '/admin/pastors',               icon: UserGroupIcon },
-      { label: 'Schedule',      to: '/admin/pastor-schedule',       icon: CalendarIcon },
-      { label: 'Sermons',       to: '/admin/sermons',               icon: BookOpenIcon },
-      { label: 'YouTube',       to: '/admin/youtube',               icon: PlayIcon },
-      { label: 'Gallery',       to: '/admin/gallery',               icon: RectangleGroupIcon },
+      { key: 'dashboard',      to: '/admin/dashboard',              match: '/admin/dashboard',             icon: HomeIcon },
+      { key: 'events',         to: '/admin/events',                 match: '/admin/events',                icon: CalendarIcon },
+      { key: 'eventPhotos',    to: '/admin/event-photos',           match: '/admin/event-photos',          icon: PhotoIcon },
+      { key: 'pastors',        to: '/admin/pastors',                match: '/admin/pastors',               icon: UserGroupIcon },
+      { key: 'schedule',       to: '/admin/pastor-schedule',        match: '/admin/pastor-schedule',       icon: CalendarIcon },
+      { key: 'sermons',        to: '/admin/sermons',                match: '/admin/sermons',               icon: BookOpenIcon },
+      { key: 'youtube',        to: '/admin/youtube',                match: '/admin/youtube',               icon: PlayIcon },
+      { key: 'gallery',        to: '/admin/gallery',                match: '/admin/gallery',               icon: RectangleGroupIcon },
     ],
   },
   {
-    label: 'Community',
+    key: 'community',
     items: [
-      { label: 'Offerings',     to: '/admin/offerings',             icon: BanknotesIcon },
-      { label: 'Prayer Requests',to: '/admin/prayer-requests',      icon: HandRaisedIcon },
-      { label: 'Messages',      to: '/admin/contact-messages',      icon: EnvelopeIcon },
-      { label: 'Sunday School', to: '/admin/sunday-school/children',icon: AcademicCapIcon },
+      { key: 'offerings',      to: '/admin/offerings',              match: '/admin/offerings',             icon: BanknotesIcon },
+      { key: 'prayerRequests', to: '/admin/prayer-requests',        match: '/admin/prayer-requests',       icon: HandRaisedIcon },
+      { key: 'messages',       to: '/admin/contact-messages',       match: '/admin/contact-messages',      icon: EnvelopeIcon },
+      { key: 'sundaySchool',   to: '/admin/sunday-school/children', match: '/admin/sunday-school',         icon: AcademicCapIcon },
     ],
   },
 ];
+
+const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items);
 
 function NavItem({ label, to, icon: Icon }) {
   return (
     <NavLink
       to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-          isActive
-            ? 'bg-white/15 text-white shadow-sm'
-            : 'text-white/60 hover:bg-white/8 hover:text-white/90'
-        }`
-      }
+      className={({ isActive }) => `admin-nav-item ${isActive ? 'is-active' : ''}`}
     >
-      <Icon className="h-4.5 w-4.5 shrink-0" style={{ width: '18px', height: '18px' }} />
-      <span className="truncate">{label}</span>
+      <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+      <span className="admin-nav-label">{label}</span>
     </NavLink>
   );
 }
 
 function Sidebar({ onClose }) {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    if (!onClose) return;
+    closeRef.current?.focus();
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const handleLogout = () => {
     logout();
@@ -62,66 +71,82 @@ function Sidebar({ onClose }) {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg, #1e3a5f 0%, #162d4a 100%)' }}>
+    <div className="flex h-full flex-col">
 
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <span className="text-church-gold text-xl">✝</span>
-          <div>
-            <p className="text-white font-bold text-sm leading-tight" style={{ fontFamily: 'Lora, Georgia, serif' }}>GDM Church</p>
-            <p className="text-white/40 text-xs">Admin Panel</p>
-          </div>
+      {/* Brand */}
+      <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-4">
+        <Link to="/" className="group flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-church-gold">
+          <span className="admin-emblem" aria-hidden="true">✝</span>
+          <span className="min-w-0">
+            <span className="admin-brand-name block truncate">GDM Church</span>
+            <span className="admin-brand-tag block">{t('admin.shell.brandTag')}</span>
+          </span>
         </Link>
         {onClose && (
-          <button onClick={onClose} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10">
-            <XMarkIcon className="h-5 w-5" />
+          <button
+            ref={closeRef}
+            onClick={onClose}
+            aria-label={t('admin.shell.closeMenu')}
+            className="ml-auto inline-grid h-9 w-9 place-items-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-church-gold"
+          >
+            <XMarkIcon className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+      {/* Navigation — independently scrollable */}
+      <nav className="admin-nav-scroll" aria-label={t('admin.shell.root')}>
         {NAV_GROUPS.map(group => (
-          <div key={group.label}>
-            <p className="text-white/30 text-xs font-semibold uppercase tracking-widest px-3 mb-1.5">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
+          <div key={group.key}>
+            <p className="admin-nav-title">{t(`admin.nav.${group.key}`)}</p>
+            <ul className="space-y-1">
               {group.items.map(item => (
-                <NavItem key={item.to} {...item} />
+                <li key={item.to}>
+                  <NavItem label={t(`admin.nav.${item.key}`)} to={item.to} icon={item.icon} />
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-4 py-4 border-t border-white/10 space-y-2">
-        {/* View site */}
-        <Link
-          to="/"
-          target="_blank"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-white/50 text-xs hover:bg-white/8 hover:text-white/80 transition-colors"
-        >
-          <GlobeAltIcon className="h-4 w-4" />
-          View Public Site
-        </Link>
+      {/* Fixed footer — sits below the scroll area, never covers links */}
+      <div className="admin-sidebar-foot">
+        <div className="flex items-center justify-between gap-2 px-1 py-1">
+          <LanguageSwitcher />
+          <Link
+            to="/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-semibold text-white/55 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-church-gold"
+          >
+            <GlobeAltIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            {t('admin.viewSite')}
+          </Link>
+        </div>
 
-        {/* User + logout */}
-        <div className="flex items-center gap-2 px-3 py-2">
-          <div className="w-7 h-7 rounded-full bg-church-gold/30 flex items-center justify-center text-church-gold font-bold text-xs shrink-0">
+        <div className="mt-2 flex items-center gap-2.5 rounded-xl bg-white/8 px-3 py-2.5">
+          <span
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-church-gold/25 text-xs font-bold text-church-gold"
+            aria-hidden="true"
+          >
             {user?.name?.[0] || user?.email?.[0]?.toUpperCase() || 'A'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/70 text-xs font-medium truncate">{user?.email}</p>
-          </div>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-bold uppercase tracking-wider text-white/40">
+              {t('admin.shell.account')}
+            </span>
+            <span className="block truncate text-xs font-medium text-white/80" title={user?.email}>
+              {user?.email}
+            </span>
+          </span>
           <button
             onClick={handleLogout}
-            title="Sign out"
-            className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-white/10 transition-colors"
+            aria-label={t('admin.signOut')}
+            title={t('admin.signOut')}
+            className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-church-gold"
           >
-            <ArrowRightOnRectangleIcon className="h-4 w-4" />
+            <ArrowRightOnRectangleIcon className="h-[18px] w-[18px]" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -131,58 +156,92 @@ function Sidebar({ onClose }) {
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { t } = useLanguage();
   const location = useLocation();
+  const mainRef = useRef(null);
+  const menuBtnRef = useRef(null);
 
-  // Page title from nav items
-  const allItems = NAV_GROUPS.flatMap(g => g.items);
-  const current  = allItems.find(i => location.pathname.startsWith(i.to));
+  const current = ALL_ITEMS.find(i => location.pathname.startsWith(i.match));
+  const currentGroup = current ? NAV_GROUPS.find(g => g.items.includes(current)) : null;
+
+  // Reset scroll on route change so pages never start mid-scroll
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [location.pathname]);
+
+  // Close the mobile drawer on navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Return focus to the trigger when the drawer closes
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !sidebarOpen) {
+      menuBtnRef.current?.focus({ preventScroll: true });
+    }
+    wasOpen.current = sidebarOpen;
+  }, [sidebarOpen]);
+
+  const pageTitle = current ? t(`admin.nav.${current.key}`) : t('admin.nav.dashboard');
 
   return (
-    <div className="flex h-screen bg-[#f5f7fb] overflow-hidden">
+    <div className="admin-shell">
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 flex-col flex-shrink-0">
+      <aside className="admin-sidebar">
         <Sidebar />
       </aside>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile drawer */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 flex-shrink-0 flex flex-col shadow-2xl">
+        <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label={t('admin.shell.root')}>
+          <div
+            className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside className="admin-drawer">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </aside>
         </div>
       )}
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      {/* Main column */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
-        {/* Topbar */}
-        <header className="bg-white border-b border-gray-200/80 h-14 flex items-center px-4 gap-3 shrink-0 shadow-sm">
+        <header className="admin-topbar">
           <button
-            className="lg:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            ref={menuBtnRef}
+            className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-church-border bg-white text-church-blue transition-colors hover:bg-church-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-church-gold lg:hidden"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
+            aria-label={t('admin.shell.openMenu')}
+            aria-expanded={sidebarOpen}
           >
-            <Bars3Icon className="h-5 w-5" />
+            <Bars3Icon className="h-5 w-5" aria-hidden="true" />
           </button>
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-gray-500 min-w-0">
-            <span className="hidden sm:inline text-church-blue font-semibold">GDM Admin</span>
-            {current && (
-              <>
-                <span className="hidden sm:inline text-gray-300">/</span>
-                <span className="text-gray-700 font-medium truncate">{current.label}</span>
-              </>
-            )}
+          <div className="min-w-0 flex-1">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+              <span className="admin-crumb">{t('admin.shell.root')}</span>
+              {currentGroup && (
+                <>
+                  <ChevronRightIcon className="h-3 w-3 shrink-0 text-gray-300" aria-hidden="true" />
+                  <span className="admin-crumb truncate text-church-blue/65">
+                    {t(`admin.nav.${currentGroup.key}`)}
+                  </span>
+                </>
+              )}
+            </nav>
+            <h1 className="admin-header-title">{pageTitle}</h1>
+          </div>
+
+          <div className="shrink-0 lg:hidden">
+            <LanguageSwitcher />
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 animate-fade-in">
-          {children}
+        <main ref={mainRef} className="admin-main animate-fade-in">
+          <div className="admin-container">{children}</div>
         </main>
       </div>
     </div>

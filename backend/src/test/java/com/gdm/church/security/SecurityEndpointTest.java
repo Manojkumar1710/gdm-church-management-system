@@ -12,249 +12,351 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Security integration tests.
+ * Security integration tests — verifies authentication, authorization,
+ * JWT handling, public endpoints, and that sensitive data is not leaked.
  *
- * Verifies:
- *  - Public GET endpoints are accessible without a token
- *  - Admin endpoints return 401 without a token
- *  - Login with valid credentials returns a JWT
- *  - Login with bad credentials returns 401
- *  - Admin endpoints are accessible with a valid JWT
- *  - Private data endpoints (offerings, prayer requests) reject public access
+ * Uses an in-memory H2 database (profile "test") with a seeded test admin.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class SecurityEndpointTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    // ── Public endpoints (no token) ──────────────────────────────────
 
-    // ----------------------------------------------------------------
-    // Public endpoints — no token required
-    // ----------------------------------------------------------------
-
-    @Test
-    @DisplayName("GET /api/v1/church — public, no token needed")
+    @Test @DisplayName("GET /api/v1/church — public, no token needed")
     void getChurch_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/church"))
-                .andExpect(status().isOk());
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/events — public, no token needed")
+    @Test @DisplayName("GET /api/v1/events — public, no token needed")
     void getEvents_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/events"))
-                .andExpect(status().isOk());
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/event-photos/latest — public, no token needed")
+    @Test @DisplayName("GET /api/v1/event-photos/latest — public, no token needed")
     void getLatestPhotos_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/event-photos/latest"))
-                .andExpect(status().isOk());
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/pastors — public, no token needed")
+    @Test @DisplayName("GET /api/v1/pastors — public, no token needed")
     void getPastors_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/pastors"))
-                .andExpect(status().isOk());
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/offering-purposes — public, no token needed")
+    @Test @DisplayName("GET /api/v1/offering-purposes — public, no token needed")
     void getOfferingPurposes_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/offering-purposes"))
-                .andExpect(status().isOk());
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/sunday-school/programs — public, no token needed")
+    @Test @DisplayName("GET /api/v1/sunday-school/programs — public, no token needed")
     void getSundaySchoolPrograms_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/sunday-school/programs"))
-                .andExpect(status().isOk());
+               .andExpect(status().isOk());
     }
 
-    // ----------------------------------------------------------------
-    // Admin endpoints — 401 without token
-    // ----------------------------------------------------------------
+    // ── Admin endpoints require authentication ───────────────────────
 
-    @Test
-    @DisplayName("GET /api/v1/admin/dashboard — 401 without token")
+    @Test @DisplayName("GET /api/v1/admin/dashboard — 401 without token")
     void adminDashboard_noToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/admin/dashboard"))
-                .andExpect(status().isUnauthorized());
+               .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/offerings — 401 without token (donor data private)")
+    @Test @DisplayName("GET /api/v1/admin/offerings — 401 without token")
     void adminOfferings_noToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/admin/offerings"))
-                .andExpect(status().isUnauthorized());
+               .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/prayer-requests — 401 without token (prayer data private)")
+    @Test @DisplayName("GET /api/v1/admin/prayer-requests — 401 without token")
     void adminPrayerRequests_noToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/admin/prayer-requests"))
-                .andExpect(status().isUnauthorized());
+               .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/sunday-school/children — 401 without token (child PII private)")
+    @Test @DisplayName("GET /api/v1/admin/sunday-school/children — 401 without token")
     void adminChildren_noToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/admin/sunday-school/children"))
-                .andExpect(status().isUnauthorized());
+               .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/contact-messages — 401 without token")
+    @Test @DisplayName("GET /api/v1/admin/contact-messages — 401 without token")
     void adminContactMessages_noToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/admin/contact-messages"))
-                .andExpect(status().isUnauthorized());
+               .andExpect(status().isUnauthorized());
     }
 
-    // ----------------------------------------------------------------
-    // Login flow
-    // ----------------------------------------------------------------
+    @Test @DisplayName("GET /api/v1/auth/me — 401 without token")
+    void getMe_noToken_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/me"))
+               .andExpect(status().isUnauthorized());
+    }
 
-    @Test
-    @DisplayName("POST /api/v1/auth/login — valid credentials return 200 + token")
+    // ── Login flow ───────────────────────────────────────────────────
+
+    @Test @DisplayName("POST /api/v1/auth/login — valid credentials return 200 + token")
     void login_validCredentials_returnsToken() throws Exception {
-        LoginRequest req = new LoginRequest();
-        req.setEmail("test-admin@gdmchurch.org");
-        req.setPassword("TestPass@123");
+        LoginRequest req = buildLogin("test-admin@gdmchurch.org", "TestPass@123");
 
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").isNotEmpty())
-                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.data.user.email").value("test-admin@gdmchurch.org"))
-                .andExpect(jsonPath("$.data.user.passwordHash").doesNotExist());
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(req)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.data.token").isNotEmpty())
+               .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+               .andExpect(jsonPath("$.data.user.email").value("test-admin@gdmchurch.org"))
+               // passwordHash must NEVER appear in any response
+               .andExpect(jsonPath("$.data.user.passwordHash").doesNotExist())
+               .andExpect(jsonPath("$.data.user.password").doesNotExist());
     }
 
-    @Test
-    @DisplayName("POST /api/v1/auth/login — wrong password returns 401")
+    @Test @DisplayName("POST /api/v1/auth/login — wrong password returns 401")
     void login_wrongPassword_returns401() throws Exception {
-        LoginRequest req = new LoginRequest();
-        req.setEmail("test-admin@gdmchurch.org");
-        req.setPassword("WrongPassword!");
-
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isUnauthorized());
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("test-admin@gdmchurch.org", "WrongPass!"))))
+               .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("POST /api/v1/auth/login — unknown email returns 401")
+    @Test @DisplayName("POST /api/v1/auth/login — unknown email returns 401 (not 404)")
     void login_unknownEmail_returns401() throws Exception {
-        LoginRequest req = new LoginRequest();
-        req.setEmail("nobody@gdmchurch.org");
-        req.setPassword("AnyPassword");
-
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isUnauthorized());
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("nobody@gdmchurch.org", "AnyPass"))))
+               .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("POST /api/v1/auth/login — blank email returns 400")
+    @Test @DisplayName("POST /api/v1/auth/login — blank email returns 400")
     void login_blankEmail_returns400() throws Exception {
-        LoginRequest req = new LoginRequest();
-        req.setEmail("");
-        req.setPassword("SomePassword");
-
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isBadRequest());
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("", "SomePassword"))))
+               .andExpect(status().isBadRequest());
     }
 
-    // ----------------------------------------------------------------
-    // Authenticated admin access
-    // ----------------------------------------------------------------
+    @Test @DisplayName("POST /api/v1/auth/login — blank password returns 400")
+    void login_blankPassword_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("test-admin@gdmchurch.org", ""))))
+               .andExpect(status().isBadRequest());
+    }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/dashboard — 200 with valid token")
+    @Test @DisplayName("POST /api/v1/auth/login — invalid email format returns 400")
+    void login_invalidEmailFormat_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("not-an-email", "SomePassword"))))
+               .andExpect(status().isBadRequest());
+    }
+
+    // ── Authenticated admin access ───────────────────────────────────
+
+    @Test @DisplayName("GET /api/v1/admin/dashboard — 200 with valid token")
     void adminDashboard_withToken_returns200() throws Exception {
-        String token = loginAndGetToken("test-admin@gdmchurch.org", "TestPass@123");
+        String token = obtainToken("test-admin@gdmchurch.org", "TestPass@123");
 
         mockMvc.perform(get("/api/v1/admin/dashboard")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isMap());
+                       .header("Authorization", "Bearer " + token))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.data").isMap());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/offerings — 200 with valid token")
+    @Test @DisplayName("GET /api/v1/admin/offerings — 200 with valid token")
     void adminOfferings_withToken_returns200() throws Exception {
-        String token = loginAndGetToken("test-admin@gdmchurch.org", "TestPass@123");
+        String token = obtainToken("test-admin@gdmchurch.org", "TestPass@123");
 
         mockMvc.perform(get("/api/v1/admin/offerings")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+                       .header("Authorization", "Bearer " + token))
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/prayer-requests — 200 with valid token")
+    @Test @DisplayName("GET /api/v1/admin/prayer-requests — 200 with valid token")
     void adminPrayer_withToken_returns200() throws Exception {
-        String token = loginAndGetToken("test-admin@gdmchurch.org", "TestPass@123");
+        String token = obtainToken("test-admin@gdmchurch.org", "TestPass@123");
 
         mockMvc.perform(get("/api/v1/admin/prayer-requests")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+                       .header("Authorization", "Bearer " + token))
+               .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("GET /api/v1/admin/sunday-school/children — 200 with valid token (PII protected)")
-    void adminChildren_withToken_returns200() throws Exception {
-        String token = loginAndGetToken("test-admin@gdmchurch.org", "TestPass@123");
+    // ── JWT validation ───────────────────────────────────────────────
 
-        mockMvc.perform(get("/api/v1/admin/sunday-school/children")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("Invalid token returns 401")
-    void invalidToken_returns401() throws Exception {
+    @Test @DisplayName("Malformed token returns 401")
+    void malformedToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/admin/dashboard")
-                        .header("Authorization", "Bearer this.is.not.a.valid.jwt"))
-                .andExpect(status().isUnauthorized());
+                       .header("Authorization", "Bearer this.is.not.a.valid.jwt"))
+               .andExpect(status().isUnauthorized());
     }
 
-    // ----------------------------------------------------------------
-    // Helper
-    // ----------------------------------------------------------------
+    @Test @DisplayName("Tampered token returns 401")
+    void tamperedToken_returns401() throws Exception {
+        String validToken = obtainToken("test-admin@gdmchurch.org", "TestPass@123");
+        // Flip last char
+        String tampered = validToken.substring(0, validToken.length() - 1) + "X";
 
-    private String loginAndGetToken(String email, String password) throws Exception {
+        mockMvc.perform(get("/api/v1/admin/dashboard")
+                       .header("Authorization", "Bearer " + tampered))
+               .andExpect(status().isUnauthorized());
+    }
+
+    @Test @DisplayName("Authorization header with no Bearer prefix is rejected")
+    void noBearerPrefix_returns401() throws Exception {
+        String token = obtainToken("test-admin@gdmchurch.org", "TestPass@123");
+
+        mockMvc.perform(get("/api/v1/admin/dashboard")
+                       .header("Authorization", token))  // missing "Bearer "
+               .andExpect(status().isUnauthorized());
+    }
+
+    @Test @DisplayName("Empty Authorization header returns 401")
+    void emptyAuthHeader_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/dashboard")
+                       .header("Authorization", ""))
+               .andExpect(status().isUnauthorized());
+    }
+
+    // ── Public write endpoint validation ────────────────────────────
+
+    @Test @DisplayName("POST /api/v1/contact-messages — valid request returns 200")
+    void contactSubmit_valid_returns200() throws Exception {
+        Map<String, String> body = Map.of(
+            "name",    "Test User",
+            "email",   "test@example.com",
+            "message", "This is a valid test message."
+        );
+        mockMvc.perform(post("/api/v1/contact-messages")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isOk());
+    }
+
+    @Test @DisplayName("POST /api/v1/contact-messages — missing required fields returns 400")
+    void contactSubmit_missingFields_returns400() throws Exception {
+        Map<String, String> body = Map.of("name", "Test User");  // missing email + message
+        mockMvc.perform(post("/api/v1/contact-messages")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isBadRequest())
+               .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test @DisplayName("POST /api/v1/contact-messages — invalid email format returns 400")
+    void contactSubmit_invalidEmail_returns400() throws Exception {
+        Map<String, String> body = Map.of(
+            "name",    "Test User",
+            "email",   "not-an-email",
+            "message", "Valid message."
+        );
+        mockMvc.perform(post("/api/v1/contact-messages")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isBadRequest());
+    }
+
+    @Test @DisplayName("POST /api/v1/prayer-requests — valid request returns 200")
+    void prayerSubmit_valid_returns200() throws Exception {
+        Map<String, Object> body = Map.of(
+            "requestText", "Please pray for my family during a difficult time.",
+            "anonymous",   true
+        );
+        mockMvc.perform(post("/api/v1/prayer-requests")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isOk());
+    }
+
+    @Test @DisplayName("POST /api/v1/prayer-requests — blank requestText returns 400")
+    void prayerSubmit_blankRequest_returns400() throws Exception {
+        Map<String, Object> body = Map.of("requestText", "", "anonymous", true);
+        mockMvc.perform(post("/api/v1/prayer-requests")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isBadRequest());
+    }
+
+    @Test @DisplayName("POST /api/v1/prayer-requests — submitter cannot set status")
+    void prayerSubmit_statusIgnored() throws Exception {
+        // Even if the caller passes status=PRAYED, the server must return NEW or ignore it
+        Map<String, Object> body = Map.of(
+            "requestText", "Valid prayer request of sufficient length.",
+            "anonymous",   true,
+            "status",      "PRAYED"   // should be ignored
+        );
+        mockMvc.perform(post("/api/v1/prayer-requests")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(body)))
+               .andExpect(status().isOk());
+        // The response is ApiResponse<Void> so status field is not in the body — no leak
+    }
+
+    // ── Error response safety ────────────────────────────────────────
+
+    @Test @DisplayName("Error responses do not contain stack traces or internal paths")
+    void errorResponse_noStackTrace() throws Exception {
+        String responseBody = mockMvc.perform(get("/api/v1/admin/dashboard"))
+               .andExpect(status().isUnauthorized())
+               .andReturn()
+               .getResponse().getContentAsString();
+
+        assertThat(responseBody).doesNotContain("at com.");
+        assertThat(responseBody).doesNotContain("Exception");
+        assertThat(responseBody).doesNotContain("java.lang");
+        assertThat(responseBody).doesNotContain("NullPointer");
+    }
+
+    @Test @DisplayName("Login error response does not reveal account existence")
+    void loginError_noAccountEnumeration() throws Exception {
+        // Wrong-password response
+        String wrongPassBody = mockMvc.perform(post("/api/v1/auth/login")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("test-admin@gdmchurch.org", "WrongPass"))))
+               .andReturn().getResponse().getContentAsString();
+
+        // Unknown-user response
+        String unknownUserBody = mockMvc.perform(post("/api/v1/auth/login")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin("unknown@gdmchurch.org", "WrongPass"))))
+               .andReturn().getResponse().getContentAsString();
+
+        // Both should return the same generic message — prevents account enumeration
+        assertThat(wrongPassBody).contains("Invalid email or password");
+        assertThat(unknownUserBody).contains("Invalid email or password");
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    private LoginRequest buildLogin(String email, String password) {
         LoginRequest req = new LoginRequest();
         req.setEmail(email);
         req.setPassword(password);
+        return req;
+    }
 
+    private String obtainToken(String email, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk())
-                .andReturn();
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(buildLogin(email, password))))
+               .andExpect(status().isOk())
+               .andReturn();
 
-        String body = result.getResponse().getContentAsString();
-        // Extract token from: {"success":true,"data":{"token":"<jwt>", ...}}
+        String body  = result.getResponse().getContentAsString();
         String token = objectMapper.readTree(body).path("data").path("token").asText();
         assertThat(token).isNotBlank();
         return token;

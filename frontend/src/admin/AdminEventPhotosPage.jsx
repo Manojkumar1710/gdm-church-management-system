@@ -5,9 +5,11 @@ import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../context/LanguageContext';
 import { PhotoIcon, CloudArrowUpIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function AdminEventPhotosPage() {
+  const { t, dateLocale } = useLanguage();
   const [events,      setEvents]      = useState([]);
   const [photos,      setPhotos]      = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -15,7 +17,6 @@ export default function AdminEventPhotosPage() {
   const [totalPages,  setTotalPages]  = useState(0);
   const [filterEventId, setFilter]    = useState('');
 
-  // Upload state
   const [uploadModal, setUploadModal] = useState(false);
   const [uploadEventId, setUploadEventId] = useState('');
   const [uploadFiles, setUploadFiles] = useState([]);
@@ -26,11 +27,11 @@ export default function AdminEventPhotosPage() {
   const [dragOver,    setDragOver]    = useState(false);
   const fileRef = useRef();
 
-  // Delete
   const [deleting,      setDeleting]     = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  /* ── Load photos ── */
+  const entity = t('admin.entity.photo');
+
   const loadPhotos = (p = 0) => {
     setLoading(true);
     eventService.adminListPhotos(filterEventId || null, p, 20)
@@ -47,17 +48,16 @@ export default function AdminEventPhotosPage() {
 
   useEffect(() => { loadPhotos(0); }, [filterEventId]);
 
-  /* ── File selection (input or drop) ── */
   const addFiles = useCallback((newFiles) => {
     const valid = newFiles.filter(f =>
       ['image/jpeg','image/jpg','image/png','image/webp'].includes(f.type.toLowerCase())
     );
     if (valid.length !== newFiles.length) {
-      toast.error('Some files were skipped — only JPG, PNG and WebP are allowed');
+      toast.error(t('admin.photo.skippedFiles'));
     }
     setUploadFiles(prev => [...prev, ...valid]);
     setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))]);
-  }, []);
+  }, [t]);
 
   const handleFileChange = (e) => addFiles(Array.from(e.target.files));
 
@@ -74,16 +74,14 @@ export default function AdminEventPhotosPage() {
     addFiles(Array.from(e.dataTransfer.files));
   };
 
-  /* ── Upload ── */
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!uploadEventId)         { toast.error('Please select an event');      return; }
-    if (uploadFiles.length === 0) { toast.error('Please choose at least one image'); return; }
+    if (!uploadEventId)         { toast.error(t('admin.photo.selectEvent')); return; }
+    if (uploadFiles.length === 0) { toast.error(t('admin.photo.chooseImage')); return; }
 
     setUploading(true);
     setUploadProgress(0);
 
-    // Upload one at a time so we can show per-file progress
     let done = 0;
     const errors = [];
 
@@ -93,7 +91,7 @@ export default function AdminEventPhotosPage() {
         done++;
         setUploadProgress(Math.round((done / uploadFiles.length) * 100));
       } catch (err) {
-        const msg = err.response?.data?.message || err.message || 'Upload failed';
+        const msg = err.response?.data?.message || err.message || t('admin.photo.uploadFailed');
         errors.push(`${file.name}: ${msg}`);
       }
     }
@@ -102,10 +100,10 @@ export default function AdminEventPhotosPage() {
     setUploadProgress(0);
 
     if (errors.length > 0) {
-      toast.error(`${errors.length} file(s) failed:\n${errors[0]}`, { duration: 5000 });
+      toast.error(t('admin.photo.filesFailed', { count: errors.length, first: errors[0] }), { duration: 5000 });
     }
     if (done > 0) {
-      toast.success(`${done} photo(s) uploaded successfully`);
+      toast.success(t('admin.photo.uploadedCount', { count: done }));
       resetUpload();
       loadPhotos(0);
     }
@@ -120,128 +118,113 @@ export default function AdminEventPhotosPage() {
     setUploadModal(false);
   };
 
-  /* ── Publish toggle ── */
   const togglePublish = async (photo) => {
     try {
       await eventService.updatePhoto(photo.id, { ...photo, published: !photo.published });
-      toast.success(photo.published ? 'Unpublished' : 'Published');
+      toast.success(photo.published ? t('admin.photo.unpublishedToast') : t('admin.photo.publishedToast'));
       loadPhotos(page);
-    } catch { toast.error('Update failed'); }
+    } catch { toast.error(t('admin.toast.updateFailed')); }
   };
 
-  /* ── Delete ── */
   const confirmDelete = async () => {
     setDeleteLoading(true);
     try {
       await eventService.deletePhoto(deleting.id);
-      toast.success('Photo deleted');
+      toast.success(t('admin.toast.deleted', { entity }));
       setDeleting(null);
       loadPhotos(page);
-    } catch { toast.error('Delete failed'); } finally { setDeleteLoading(false); }
+    } catch { toast.error(t('admin.toast.deleteFailed')); } finally { setDeleteLoading(false); }
   };
 
-  /* ── Table columns ── */
   const cols = [
     {
-      key: 'imageUrl', label: 'Photo',
+      key: 'imageUrl', label: t('admin.photo.photo'),
       render: r => r.imageUrl
-        ? <img src={r.imageUrl} alt={r.title || 'photo'} className="h-12 w-16 rounded-lg object-cover border border-gray-100" />
-        : <div className="h-12 w-16 rounded-lg bg-gray-100 flex items-center justify-center"><PhotoIcon className="h-5 w-5 text-gray-300" /></div>,
+        ? <img src={r.imageUrl} alt={r.title || t('admin.photo.photo')} className="h-12 w-16 rounded-lg object-cover border border-church-border" />
+        : <div className="h-12 w-16 rounded-lg bg-church-light flex items-center justify-center"><PhotoIcon className="h-5 w-5 text-gray-300" /></div>,
     },
-    { key: 'eventTitle', label: 'Event' },
-    { key: 'title',      label: 'Caption' },
+    { key: 'eventTitle', label: t('admin.nav.events') },
+    { key: 'title',      label: t('admin.photo.caption'), render: r => r.title || '—' },
     {
-      key: 'published', label: 'Status',
-      render: r => <span className={`badge ${r.published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-        {r.published ? '✓ Published' : '○ Hidden'}
+      key: 'published', label: t('admin.col.status'),
+      render: r => <span className={`pill ${r.published ? 'pill--success' : 'pill--warn'}`}>
+        {r.published ? t('admin.sermon.published') : t('admin.photo.hidden')}
       </span>,
     },
     {
-      key: 'createdAt', label: 'Uploaded',
-      render: r => r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—',
+      key: 'createdAt', label: t('admin.col.added'),
+      render: r => r.createdAt ? new Date(r.createdAt).toLocaleDateString(dateLocale, { day:'numeric', month:'short', year:'numeric' }) : '—',
     },
   ];
 
   return (
     <div>
-      {/* Header */}
       <div className="page-header">
-        <div>
-          <h1 className="page-title">Event Photos</h1>
-          <p className="page-subtitle">Upload and manage event photos</p>
-        </div>
-        <button
-          onClick={() => setUploadModal(true)}
-          className="btn-primary"
-        >
+        <p className="page-subtitle">{t('admin.pageDesc.eventPhotos')}</p>
+        <button onClick={() => setUploadModal(true)} className="btn-primary btn-sm">
           <CloudArrowUpIcon className="h-4 w-4" />
-          Upload Photos
+          {t('admin.action.upload', { entity })}
         </button>
       </div>
 
-      {/* Filter */}
-      <div className="mb-4 flex gap-3 flex-wrap items-center">
+      <div className="admin-toolbar">
+        <label className="sr-only" htmlFor="photo-filter">{t('admin.filter.all')}</label>
         <select
-          className="form-input w-auto min-w-[220px]"
+          id="photo-filter"
+          className="inline-select"
           value={filterEventId}
           onChange={e => setFilter(e.target.value)}
         >
-          <option value="">All Events</option>
+          <option value="">{t('admin.photo.allEvents')}</option>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
         </select>
         {filterEventId && (
-          <button onClick={() => setFilter('')} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-            <XMarkIcon className="h-3 w-3" /> Clear filter
+          <button onClick={() => setFilter('')} className="btn-ghost btn-sm">
+            <XMarkIcon className="h-3 w-3" /> {t('admin.action.clearFilters')}
           </button>
         )}
       </div>
 
-      {/* Table */}
       <AdminTable
         columns={cols} rows={photos} loading={loading}
         onDelete={setDeleting}
         actions={row => (
           <button
+            type="button"
             onClick={() => togglePublish(row)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              row.published
-                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                : 'bg-green-50 text-green-700 hover:bg-green-100'
-            }`}
+            className={row.published ? 'admin-btn' : 'admin-btn admin-btn--gold'}
           >
-            {row.published ? 'Unpublish' : 'Publish'}
+            {row.published ? t('admin.photo.unpublish') : t('admin.photo.publish')}
           </button>
         )}
-        emptyMessage="No photos yet. Click Upload Photos to add some."
+        emptyMessage={t('admin.empty.photos')}
       />
       <Pagination page={page} totalPages={totalPages} onPageChange={loadPhotos} />
 
-      {/* ── Upload modal ── */}
       <Modal
         open={uploadModal}
         onClose={() => !uploading && resetUpload()}
-        title="Upload Event Photos"
+        title={t('admin.photo.uploadTitle')}
         size="lg"
       >
         <form onSubmit={handleUpload} className="space-y-5">
 
-          {/* Event selector */}
           <div>
-            <label className="form-label">Event *</label>
+            <label className="form-label" htmlFor="up-event">{t('admin.form.event')} *</label>
             <select
+              id="up-event"
               className="form-input"
               value={uploadEventId}
               onChange={e => setUploadEventId(e.target.value)}
               required
             >
-              <option value="">Select event…</option>
+              <option value="">{t('admin.form.selectPlaceholder')}</option>
               {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
             </select>
           </div>
 
-          {/* Drop zone */}
           <div>
-            <label className="form-label">Images * (JPG, PNG, WebP — up to 10 MB each)</label>
+            <span className="form-label">{t('admin.photo.imagesLabel')}</span>
             <div
               onDrop={onDrop}
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -250,14 +233,14 @@ export default function AdminEventPhotosPage() {
               className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
                 dragOver
                   ? 'border-church-blue bg-church-blue/5'
-                  : 'border-gray-200 hover:border-church-blue hover:bg-gray-50'
+                  : 'border-church-border hover:border-church-blue hover:bg-church-light'
               }`}
             >
               <CloudArrowUpIcon className={`h-10 w-10 mx-auto mb-2 ${dragOver ? 'text-church-blue' : 'text-gray-300'}`} />
               <p className="text-sm text-gray-500">
-                <span className="font-semibold text-church-blue">Click to choose files</span> or drag and drop
+                <span className="font-semibold text-church-blue">{t('admin.photo.clickToChoose')}</span> {t('admin.photo.orDragDrop')}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Multiple images allowed</p>
+              <p className="text-xs text-gray-400 mt-1">{t('admin.photo.multipleAllowed')}</p>
               <input
                 ref={fileRef}
                 type="file"
@@ -269,17 +252,17 @@ export default function AdminEventPhotosPage() {
             </div>
           </div>
 
-          {/* Preview grid */}
           {previews.length > 0 && (
             <div>
-              <p className="form-label">{previews.length} file(s) selected</p>
+              <p className="form-label">{t('admin.photo.filesSelected', { count: previews.length })}</p>
               <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-1">
                 {previews.map((src, i) => (
                   <div key={i} className="relative group">
-                    <img src={src} alt="preview" className="h-20 w-20 rounded-xl object-cover border border-gray-200" />
+                    <img src={src} alt={t('admin.form.image')} className="h-20 w-20 rounded-xl object-cover border border-church-border" />
                     <button
                       type="button"
                       onClick={() => removePreview(i)}
+                      aria-label={t('common.close')}
                       className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                     >
                       ×
@@ -290,11 +273,10 @@ export default function AdminEventPhotosPage() {
             </div>
           )}
 
-          {/* Upload progress bar */}
           {uploading && (
             <div>
               <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Uploading…</span>
+                <span>{t('admin.photo.uploading')}</span>
                 <span>{uploadProgress}%</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -306,11 +288,11 @@ export default function AdminEventPhotosPage() {
             </div>
           )}
 
-          {/* Meta */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Caption (applied to all)</label>
+              <label className="form-label" htmlFor="up-caption">{t('admin.photo.captionAll')}</label>
               <input
+                id="up-caption"
                 className="form-input"
                 value={uploadMeta.title}
                 onChange={e => setUploadMeta(m => ({ ...m, title: e.target.value }))}
@@ -318,8 +300,9 @@ export default function AdminEventPhotosPage() {
               />
             </div>
             <div>
-              <label className="form-label">Location (optional)</label>
+              <label className="form-label" htmlFor="up-loc">{t('admin.photo.locationOptional')}</label>
               <input
+                id="up-loc"
                 className="form-input"
                 value={uploadMeta.location}
                 onChange={e => setUploadMeta(m => ({ ...m, location: e.target.value }))}
@@ -327,8 +310,9 @@ export default function AdminEventPhotosPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="form-label">Description (optional)</label>
+              <label className="form-label" htmlFor="up-desc">{t('admin.form.description')} ({t('common.optional')})</label>
               <textarea
+                id="up-desc"
                 rows={2}
                 className="form-input resize-none"
                 value={uploadMeta.description}
@@ -337,35 +321,35 @@ export default function AdminEventPhotosPage() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"
               onClick={() => !uploading && resetUpload()}
               disabled={uploading}
-              className="btn-secondary py-2 px-5 text-sm"
+              className="btn-secondary btn-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={uploading || uploadFiles.length === 0}
-              className="btn-primary py-2 px-5 text-sm"
+              className="btn-primary btn-sm"
             >
               {uploading
-                ? `Uploading ${uploadProgress}%…`
-                : `Upload ${uploadFiles.length > 0 ? uploadFiles.length + ' Photo(s)' : ''}`
+                ? `${t('admin.photo.uploading')} ${uploadProgress}%`
+                : uploadFiles.length > 0
+                  ? t('admin.photo.uploadCount', { count: uploadFiles.length })
+                  : t('admin.photo.uploadOne')
               }
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete confirm */}
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Photo"
-        message="Delete this photo permanently? This cannot be undone."
+        title={t('admin.confirm.delete', { entity })}
+        message={t('admin.photo.deleteMessage')}
         onConfirm={confirmDelete}
         onCancel={() => setDeleting(null)}
         loading={deleteLoading}
