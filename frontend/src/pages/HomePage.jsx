@@ -155,9 +155,7 @@ function HeroSection({ hero }) {
         <img src={doveImg} alt="" className="w-28 object-contain" style={{ filter: 'brightness(10)' }} />
       </div>
 
-      {/* Bottom fade — uses theme cream so the transition is warm, not stark white */}
-      <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-church-cream to-transparent"
-           aria-hidden="true" />
+      {/* Bottom fade removed — image runs naturally to the section edge */}
     </section>
   );
 }
