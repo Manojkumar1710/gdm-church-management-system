@@ -206,8 +206,8 @@ export default function AdminLayout({ children }) {
         </div>
       )}
 
-      {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {/* Main column — no overflow-hidden here so sticky topbar works correctly */}
+      <div className="flex min-w-0 flex-1 flex-col">
 
         <header className="admin-topbar">
           <button

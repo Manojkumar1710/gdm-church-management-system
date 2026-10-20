@@ -18,7 +18,7 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
   const titleId = 'confirm-dialog-title';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 pt-16 pb-8">
       <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onCancel} />
       <div className="dialog-panel relative max-w-sm" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <h3 id={titleId} className="dialog-title mb-2">{title || `${t('common.delete')}?`}</h3>

@@ -191,10 +191,11 @@
     background: linear-gradient(180deg, #1e3a5f 0%, #162d4a 100%);
   }
   .admin-topbar   {
-    @apply sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3
+    @apply sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3
            border-b border-church-border bg-white/90 px-4 sm:px-6 lg:px-8;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    isolation: isolate;
   }
   .admin-main     { @apply flex-1 overflow-y-auto overflow-x-hidden; }
   .admin-container{ @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-6 sm:py-7; }
