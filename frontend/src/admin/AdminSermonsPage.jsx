@@ -4,6 +4,7 @@ import AdminTable from './components/AdminTable';
 import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
+import ImageDropZone from './components/ImageDropZone';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { getYoutubeThumbnail } from '../utils/youtube';
@@ -180,17 +181,7 @@ export default function AdminSermonsPage() {
               <p className="text-gray-400 text-xs mt-1">{t('admin.sermon.urlHint')}</p>
             </div>
 
-            {thumbPreview && (
-              <div className="md:col-span-2">
-                <p className="form-label">{t('admin.sermon.thumbPreview')}</p>
-                <img
-                  src={thumbPreview}
-                  alt={t('admin.sermon.thumbPreview')}
-                  className="h-32 rounded-xl object-cover border border-church-border"
-                  onError={e => { e.currentTarget.style.display = 'none'; }}
-                />
-              </div>
-            )}
+            {/* thumbPreview is now shown inside ImageDropZone */}
 
             <div>
               <label className="form-label" htmlFor="s-duration">{t('admin.sermon.duration')}</label>
@@ -214,13 +205,15 @@ export default function AdminSermonsPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="form-label" htmlFor="s-thumb">{t('admin.sermon.customThumb')}</label>
-              <input
-                id="s-thumb"
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                className="form-input py-2 cursor-pointer"
-                onChange={handleThumbFile}
+              <label className="form-label">{t('admin.sermon.customThumb')}</label>
+              <ImageDropZone
+                onFiles={files => {
+                  setThumbFile(files[0]);
+                  setThumbPreview(URL.createObjectURL(files[0]));
+                }}
+                preview={thumbPreview}
+                previewAlt={t('admin.sermon.thumbPreview')}
+                disabled={saving}
               />
               <p className="text-gray-400 text-xs mt-1">{t('admin.sermon.customThumbHint')}</p>
             </div>

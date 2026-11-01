@@ -1,34 +1,33 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { eventService } from '../services/eventService';
 import AdminTable from './components/AdminTable';
 import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
+import ImageDropZone from './components/ImageDropZone';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { PhotoIcon, CloudArrowUpIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function AdminEventPhotosPage() {
   const { t, dateLocale } = useLanguage();
-  const [events,      setEvents]      = useState([]);
-  const [photos,      setPhotos]      = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [page,        setPage]        = useState(0);
-  const [totalPages,  setTotalPages]  = useState(0);
-  const [filterEventId, setFilter]    = useState('');
+  const [events,         setEvents]         = useState([]);
+  const [photos,         setPhotos]         = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [page,           setPage]           = useState(0);
+  const [totalPages,     setTotalPages]     = useState(0);
+  const [filterEventId,  setFilter]         = useState('');
 
-  const [uploadModal, setUploadModal] = useState(false);
-  const [uploadEventId, setUploadEventId] = useState('');
-  const [uploadFiles, setUploadFiles] = useState([]);
-  const [uploadMeta,  setUploadMeta]  = useState({ title: '', description: '', location: '' });
-  const [previews,    setPreviews]    = useState([]);
-  const [uploading,   setUploading]   = useState(false);
+  const [uploadModal,    setUploadModal]    = useState(false);
+  const [uploadEventId,  setUploadEventId]  = useState('');
+  const [uploadFiles,    setUploadFiles]    = useState([]);
+  const [uploadMeta,     setUploadMeta]     = useState({ title: '', description: '', location: '' });
+  const [previews,       setPreviews]       = useState([]);
+  const [uploading,      setUploading]      = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [dragOver,    setDragOver]    = useState(false);
-  const fileRef = useRef();
 
-  const [deleting,      setDeleting]     = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleting,       setDeleting]       = useState(null);
+  const [deleteLoading,  setDeleteLoading]  = useState(false);
 
   const entity = t('admin.entity.photo');
 
@@ -48,18 +47,11 @@ export default function AdminEventPhotosPage() {
 
   useEffect(() => { loadPhotos(0); }, [filterEventId]);
 
+  // Called by ImageDropZone (click, drag-drop, paste)
   const addFiles = useCallback((newFiles) => {
-    const valid = newFiles.filter(f =>
-      ['image/jpeg','image/jpg','image/png','image/webp'].includes(f.type.toLowerCase())
-    );
-    if (valid.length !== newFiles.length) {
-      toast.error(t('admin.photo.skippedFiles'));
-    }
-    setUploadFiles(prev => [...prev, ...valid]);
-    setPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))]);
-  }, [t]);
-
-  const handleFileChange = (e) => addFiles(Array.from(e.target.files));
+    setUploadFiles(prev => [...prev, ...newFiles]);
+    setPreviews(prev => [...prev, ...newFiles.map(f => URL.createObjectURL(f))]);
+  }, []);
 
   const removePreview = (i) => {
     setUploadFiles(prev => prev.filter((_, idx) => idx !== i));
@@ -69,14 +61,9 @@ export default function AdminEventPhotosPage() {
     });
   };
 
-  const onDrop = (e) => {
-    e.preventDefault(); setDragOver(false);
-    addFiles(Array.from(e.dataTransfer.files));
-  };
-
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!uploadEventId)         { toast.error(t('admin.photo.selectEvent')); return; }
+    if (!uploadEventId)           { toast.error(t('admin.photo.selectEvent')); return; }
     if (uploadFiles.length === 0) { toast.error(t('admin.photo.chooseImage')); return; }
 
     setUploading(true);
@@ -133,7 +120,8 @@ export default function AdminEventPhotosPage() {
       toast.success(t('admin.toast.deleted', { entity }));
       setDeleting(null);
       loadPhotos(page);
-    } catch { toast.error(t('admin.toast.deleteFailed')); } finally { setDeleteLoading(false); }
+    } catch { toast.error(t('admin.toast.deleteFailed')); }
+    finally { setDeleteLoading(false); }
   };
 
   const cols = [
@@ -153,7 +141,9 @@ export default function AdminEventPhotosPage() {
     },
     {
       key: 'createdAt', label: t('admin.col.added'),
-      render: r => r.createdAt ? new Date(r.createdAt).toLocaleDateString(dateLocale, { day:'numeric', month:'short', year:'numeric' }) : '—',
+      render: r => r.createdAt
+        ? new Date(r.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })
+        : '—',
     },
   ];
 
@@ -225,31 +215,11 @@ export default function AdminEventPhotosPage() {
 
           <div>
             <span className="form-label">{t('admin.photo.imagesLabel')}</span>
-            <div
-              onDrop={onDrop}
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onClick={() => fileRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
-                dragOver
-                  ? 'border-church-blue bg-church-blue/5'
-                  : 'border-church-border hover:border-church-blue hover:bg-church-light'
-              }`}
-            >
-              <CloudArrowUpIcon className={`h-10 w-10 mx-auto mb-2 ${dragOver ? 'text-church-blue' : 'text-gray-300'}`} />
-              <p className="text-sm text-gray-500">
-                <span className="font-semibold text-church-blue">{t('admin.photo.clickToChoose')}</span> {t('admin.photo.orDragDrop')}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">{t('admin.photo.multipleAllowed')}</p>
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-            </div>
+            <ImageDropZone
+              multiple
+              onFiles={addFiles}
+              disabled={uploading}
+            />
           </div>
 
           {previews.length > 0 && (
@@ -310,7 +280,9 @@ export default function AdminEventPhotosPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="form-label" htmlFor="up-desc">{t('admin.form.description')} ({t('common.optional')})</label>
+              <label className="form-label" htmlFor="up-desc">
+                {t('admin.form.description')} ({t('common.optional')})
+              </label>
               <textarea
                 id="up-desc"
                 rows={2}

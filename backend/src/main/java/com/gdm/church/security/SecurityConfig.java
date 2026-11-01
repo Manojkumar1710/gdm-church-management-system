@@ -51,8 +51,7 @@ public class SecurityConfig {
             // ── Security headers ─────────────────────────────────────────
             .headers(headers -> headers
                 // Prevent MIME-type sniffing
-                .contentTypeOptions(HeadersConfigurer.ContentTypeOptionsConfig::disable)
-                .contentTypeOptions(opt -> {})  // re-enables nosniff
+                .contentTypeOptions(opt -> {}) // re-enables nosniff
                 .frameOptions(fo -> fo.sameOrigin())
                 .referrerPolicy(rp ->
                     rp.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))

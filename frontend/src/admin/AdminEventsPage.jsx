@@ -4,6 +4,7 @@ import AdminTable from './components/AdminTable';
 import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
+import ImageDropZone from './components/ImageDropZone';
 import TimePicker, { formatTime } from '../components/TimePicker';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
@@ -193,17 +194,13 @@ export default function AdminEventsPage() {
               <textarea id="ev-desc" rows={4} className="form-input resize-none" {...f('description')} placeholder="Event details…" />
             </div>
             <div className="md:col-span-2">
-              <label className="form-label" htmlFor="ev-img">{t('admin.form.image')}</label>
-              <input
-                id="ev-img"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="form-input py-2"
-                onChange={e => setImageFile(e.target.files[0])}
+              <label className="form-label">{t('admin.form.image')}</label>
+              <ImageDropZone
+                onFiles={files => setImageFile(files[0])}
+                preview={imageFile ? URL.createObjectURL(imageFile) : editing?.imageUrl || null}
+                previewAlt={t('admin.form.image')}
+                disabled={saving}
               />
-              {editing?.imageUrl && !imageFile && (
-                <img src={editing.imageUrl} alt={t('admin.form.image')} className="mt-3 h-24 w-36 rounded-xl border border-church-border object-cover" />
-              )}
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">

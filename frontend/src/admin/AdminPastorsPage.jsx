@@ -3,6 +3,7 @@ import { pastorService } from '../services/pastorService';
 import AdminTable from './components/AdminTable';
 import Pagination from './components/Pagination';
 import Modal from '../components/Modal';
+import ImageDropZone from './components/ImageDropZone';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { CalendarIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -316,21 +317,14 @@ export default function AdminPastorsPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="form-label" htmlFor="p-photo">{t('admin.pastor.photo')}</label>
-              <input
-                id="p-photo"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="form-input py-2 cursor-pointer"
-                onChange={e => setPhotoFile(e.target.files[0])}
+              <label className="form-label">{t('admin.pastor.photo')}</label>
+              <ImageDropZone
+                onFiles={files => setPhotoFile(files[0])}
+                preview={photoFile ? URL.createObjectURL(photoFile) : editing?.photoUrl || null}
+                previewAlt={t('admin.form.image')}
+                disabled={saving}
               />
               <p className="text-gray-400 text-xs mt-1">{t('admin.pastor.photoHint')}</p>
-              {editing?.photoUrl && !photoFile && (
-                <div className="mt-2 flex items-center gap-3">
-                  <img src={editing.photoUrl} alt={t('admin.form.image')} className="h-14 w-14 rounded-full object-cover border-2 border-gray-200" />
-                  <span className="text-xs text-gray-400">{t('admin.pastor.currentPhoto')}</span>
-                </div>
-              )}
             </div>
 
             <div className="md:col-span-2 flex items-center gap-6">

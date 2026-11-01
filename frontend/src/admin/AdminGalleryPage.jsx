@@ -4,6 +4,7 @@ import AdminTable from './components/AdminTable';
 import Pagination from './components/Pagination';
 import ConfirmDialog from './components/ConfirmDialog';
 import Modal from '../components/Modal';
+import ImageDropZone from './components/ImageDropZone';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -96,9 +97,14 @@ export default function AdminGalleryPage() {
         <form onSubmit={save} className="space-y-4">
           {!editing && (
             <div>
-              <label className="form-label" htmlFor="g-img">{t('admin.form.image')} *</label>
-              <input id="g-img" type="file" accept="image/jpeg,image/png,image/webp" className={`form-input py-2 ${errors.image ? 'border-red-400' : ''}`}
-                onChange={e => { setImageFile(e.target.files[0]); setErrors({}); }} />
+              <label className="form-label">{t('admin.form.image')} *</label>
+              <ImageDropZone
+                onFiles={files => { setImageFile(files[0]); setErrors({}); }}
+                preview={imageFile ? URL.createObjectURL(imageFile) : null}
+                previewAlt={t('admin.form.image')}
+                disabled={saving}
+                className={errors.image ? 'border-red-400' : ''}
+              />
               {errors.image && <p className="form-error">{errors.image}</p>}
             </div>
           )}

@@ -590,6 +590,19 @@ const translations = {
         deleteMessage:    'Delete this photo permanently? This cannot be undone.',
       },
 
+      // ── Shared ImageDropZone ───────────────────────────────────
+      upload: {
+        clickOrDrag:  'Click to choose or drag & drop',
+        pasteHint:    'or paste with Ctrl + V / Cmd + V',
+        dropNow:      'Drop your image here',
+        pasting:      'Pasting…',
+        multipleHint: 'JPG, PNG, WebP · up to 10 MB each · multiple allowed',
+        singleHint:   'JPG, PNG, WebP · up to 10 MB',
+        typeError:    '{name} — only JPG, PNG and WebP are allowed',
+        sizeError:    '{name} — file exceeds the 10 MB limit',
+        pasteNoImage: 'Clipboard does not contain an image',
+      },
+
       sermon: {
         speaker:        'Speaker / Pastor',
         duration:       'Duration',
@@ -1224,6 +1237,19 @@ const translations = {
         filesFailed:      '{count} ఫైల్(లు) విఫలమయ్యాయి: {first}',
         uploadedCount:    '{count} ఫోటో(లు) విజయవంతంగా అప్‌లోడ్ అయ్యాయి',
         deleteMessage:    'ఈ ఫోటోను శాశ్వతంగా తొలగించాలా? దీన్ని రద్దు చేయలేము.',
+      },
+
+      // ── Shared ImageDropZone ───────────────────────────────────
+      upload: {
+        clickOrDrag:  'క్లిక్ చేయండి లేదా డ్రాగ్ & డ్రాప్ చేయండి',
+        pasteHint:    'లేదా Ctrl + V / Cmd + V తో పేస్ట్ చేయండి',
+        dropNow:      'చిత్రాన్ని ఇక్కడ వదలండి',
+        pasting:      'పేస్ట్ అవుతోంది…',
+        multipleHint: 'JPG, PNG, WebP · ఒక్కోటి గరిష్టం 10 MB · అనేక అనుమతి',
+        singleHint:   'JPG, PNG, WebP · గరిష్టం 10 MB',
+        typeError:    '{name} — JPG, PNG మరియు WebP మాత్రమే అనుమతించబడతాయి',
+        sizeError:    '{name} — ఫైల్ 10 MB పరిమితిని మించింది',
+        pasteNoImage: 'క్లిప్‌బోర్డ్‌లో చిత్రం లేదు',
       },
 
       sermon: {
