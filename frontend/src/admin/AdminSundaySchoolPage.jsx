@@ -362,17 +362,19 @@ function ChildrenTab() {
 
 function TeachersTab() {
   const { t } = useLanguage();
-  const [rows,          setRows]          = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [page,          setPage]          = useState(0);
-  const [totalPages,    setTotalPages]    = useState(0);
-  const [modal,         setModal]         = useState(false);
-  const [form,          setForm]          = useState({ name:'', village:'', contactNumber:'', email:'', classGroup:'', active:true, contactPublic:false });
-  const [editing,       setEditing]       = useState(null);
-  const [saving,        setSaving]        = useState(false);
-  const [deleting,      setDeleting]      = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [errors,        setErrors]        = useState({});
+  const [rows,            setRows]            = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [page,            setPage]            = useState(0);
+  const [totalPages,      setTotalPages]      = useState(0);
+  const [modal,           setModal]           = useState(false);
+  const [form,            setForm]            = useState({ name:'', village:'', contactNumber:'', email:'', classGroup:'', active:true, contactPublic:false });
+  const [photoFile,       setPhotoFile]       = useState(null);
+  const [uploadingPhoto,  setUploadingPhoto]  = useState(false);
+  const [editing,         setEditing]         = useState(null);
+  const [saving,          setSaving]          = useState(false);
+  const [deleting,        setDeleting]        = useState(null);
+  const [deleteLoading,   setDeleteLoading]   = useState(false);
+  const [errors,          setErrors]          = useState({});
 
   const entity = t('admin.entity.teacher');
 
@@ -385,8 +387,8 @@ function TeachersTab() {
 
   useEffect(() => load(0), []);
 
-  const openCreate = () => { setEditing(null); setForm({ name:'', village:'', contactNumber:'', email:'', classGroup:'', active:true, contactPublic:false }); setErrors({}); setModal(true); };
-  const openEdit = (row) => { setEditing(row); setForm({ name: row.name, village: row.village||'', contactNumber: row.contactNumber||'', email: row.email||'', classGroup: row.classGroup||'', active: row.active, contactPublic: row.contactPublic }); setErrors({}); setModal(true); };
+  const openCreate = () => { setEditing(null); setForm({ name:'', village:'', contactNumber:'', email:'', classGroup:'', active:true, contactPublic:false }); setPhotoFile(null); setErrors({}); setModal(true); };
+  const openEdit = (row) => { setEditing(row); setForm({ name: row.name, village: row.village||'', contactNumber: row.contactNumber||'', email: row.email||'', classGroup: row.classGroup||'', active: row.active, contactPublic: row.contactPublic }); setPhotoFile(null); setErrors({}); setModal(true); };
 
   const validate = () => { const e = {}; if (!form.name.trim()) e.name = t('admin.validate.nameRequired'); setErrors(e); return Object.keys(e).length === 0; };
 
@@ -395,8 +397,24 @@ function TeachersTab() {
     if (!validate()) return;
     setSaving(true);
     try {
-      if (editing) await sundaySchoolService.updateTeacher(editing.id, form);
-      else await sundaySchoolService.createTeacher(form);
+      let savedId = editing?.id;
+      if (editing) {
+        await sundaySchoolService.updateTeacher(editing.id, form);
+      } else {
+        const res = await sundaySchoolService.createTeacher(form);
+        savedId = res.data.data?.id;
+      }
+      // Upload photo if chosen (works for both create and edit flows)
+      if (photoFile && savedId) {
+        setUploadingPhoto(true);
+        try {
+          await sundaySchoolService.uploadTeacherPhoto(savedId, photoFile);
+        } catch {
+          toast.error(t('admin.pastor.photoUploadFailed'));
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
       toast.success(t(editing ? 'admin.toast.updated' : 'admin.toast.created', { entity }));
       setModal(false); load(page);
     } catch (err) { toast.error(err.response?.data?.message || t('admin.toast.saveFailed')); }
@@ -412,6 +430,10 @@ function TeachersTab() {
   const f = (key) => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
 
   const cols = [
+    { key: 'photoUrl', label: t('admin.pastor.photo'), render: r => r.photoUrl
+      ? <img src={r.photoUrl} alt={r.name} className="h-9 w-9 rounded-full object-cover" />
+      : <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-church-light text-church-blue text-xs font-bold">{r.name?.[0]?.toUpperCase()}</span>
+    },
     { key: 'name',          label: t('admin.col.name') },
     { key: 'village',       label: t('admin.col.village'), render: r => r.village || '—' },
     { key: 'classGroup',    label: t('admin.ss.classGroup'), render: r => r.classGroup || '—' },
@@ -454,11 +476,36 @@ function TeachersTab() {
                 {t('admin.pastor.showContactPublic')}
               </label>
             </div>
+
+            {/* Photo upload ─────────────────────────────────────── */}
+            <div className="md:col-span-2">
+              <label className="form-label" htmlFor="t-photo">{t('admin.pastor.photo')}</label>
+              <div className="flex items-center gap-4">
+                {(editing?.photoUrl) && (
+                  <img
+                    src={editing.photoUrl}
+                    alt={editing.name}
+                    className="h-14 w-14 rounded-full object-cover border border-gray-200 shrink-0"
+                  />
+                )}
+                <input
+                  id="t-photo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="form-input py-2 flex-1"
+                  onChange={e => setPhotoFile(e.target.files[0] || null)}
+                />
+              </div>
+              {uploadingPhoto && (
+                <p className="text-xs text-gray-500 mt-1">{t('admin.pastor.uploadingPhoto')}</p>
+              )}
+            </div>
           </div>
+
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button type="button" onClick={() => setModal(false)} className="btn-secondary btn-sm">{t('common.cancel')}</button>
-            <button type="submit" disabled={saving} className="btn-primary btn-sm">
-              {saving ? t('admin.action.saving') : editing ? t('admin.action.update', { entity }) : t('admin.action.create', { entity })}
+            <button type="submit" disabled={saving || uploadingPhoto} className="btn-primary btn-sm">
+              {saving || uploadingPhoto ? t('admin.action.saving') : editing ? t('admin.action.update', { entity }) : t('admin.action.create', { entity })}
             </button>
           </div>
         </form>

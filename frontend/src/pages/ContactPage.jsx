@@ -76,7 +76,19 @@ export default function ContactPage() {
           <div className="space-y-3 text-sm text-white/80">
             <div className="flex items-start gap-2.5">
               <span className="mt-0.5 shrink-0">📍</span>
-              <span>{churchInfo?.address || 'GDM Church, Chopparamma Gudem, Koyyalagudem, West Godavari — 534312'}</span>
+              <a
+                href={
+                  churchInfo?.mapUrl ||
+                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    churchInfo?.address || 'GDM Church, Chopparamma Gudem, Koyyalagudem, West Godavari 534312'
+                  )}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white underline underline-offset-2 transition-colors"
+              >
+                {churchInfo?.address || 'GDM Church, Chopparamma Gudem, Koyyalagudem, West Godavari — 534312'}
+              </a>
             </div>
             <div className="flex items-center gap-2.5">
               <span>📞</span>

@@ -11,6 +11,13 @@ export const sundaySchoolService = {
   listTeachers: (page = 0, size = 20) => api.get('/admin/sunday-school/teachers', { params: { page, size } }),
   createTeacher: (data) => api.post('/admin/sunday-school/teachers', data),
   updateTeacher: (id, data) => api.put(`/admin/sunday-school/teachers/${id}`, data),
+  uploadTeacherPhoto: (id, file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post(`/admin/sunday-school/teachers/${id}/photo`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   deleteTeacher: (id) => api.delete(`/admin/sunday-school/teachers/${id}`),
   listPrograms: (page = 0, size = 20) => api.get('/admin/sunday-school/programs', { params: { page, size } }),
   createProgram: (formData) => api.post('/admin/sunday-school/programs', formData, {

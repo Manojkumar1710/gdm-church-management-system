@@ -208,8 +208,11 @@ class SecurityEndpointTest {
     @Test @DisplayName("Tampered token returns 401")
     void tamperedToken_returns401() throws Exception {
         String validToken = obtainToken("test-admin@gdmchurch.org", "TestPass@123");
-        // Flip last char
-        String tampered = validToken.substring(0, validToken.length() - 1) + "X";
+        // Replace the last 6 characters of the signature segment.
+        // Flipping a single base64url char is unreliable — some substitutions land on
+        // equivalent bit patterns that still decode to a valid signature. Replacing 6
+        // chars guarantees the HMAC-SHA256 signature is corrupted.
+        String tampered = validToken.substring(0, validToken.length() - 6) + "XXXXXX";
 
         mockMvc.perform(get("/api/v1/admin/dashboard")
                        .header("Authorization", "Bearer " + tampered))

@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import ProtectedRoute from './routes/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 // Public layout + pages
 import PublicLayout from './pages/PublicLayout';
@@ -57,6 +58,7 @@ export default function App() {
     <LanguageProvider>
       <AuthProvider>
         <BrowserRouter>
+        <ScrollToTop />
         <Routes>
 
           {/* ── Public website ── */}

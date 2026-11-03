@@ -35,8 +35,8 @@ public class CloudinaryService {
             "image/webp", ".webp"
     );
 
-    /** Maximum file size: 10 MB. */
-    private static final long MAX_SIZE_BYTES = 10L * 1024 * 1024;
+    /** Maximum file size: 25 MB. */
+    private static final long MAX_SIZE_BYTES = 25L * 1024 * 1024;
 
     // ── JPEG magic: FF D8 FF
     private static final byte[] JPEG_MAGIC = {(byte)0xFF, (byte)0xD8, (byte)0xFF};
@@ -160,7 +160,7 @@ public class CloudinaryService {
             throw ApiException.badRequest("No file provided.");
         }
         if (file.getSize() > MAX_SIZE_BYTES) {
-            throw ApiException.badRequest("File exceeds the 10 MB size limit.");
+            throw ApiException.badRequest("File exceeds the 25 MB size limit.");
         }
 
         String declaredType = file.getContentType();

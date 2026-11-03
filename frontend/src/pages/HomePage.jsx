@@ -700,10 +700,21 @@ export default function HomePage() {
                 <p className="text-church-gold text-xs font-bold uppercase tracking-[0.18em] mb-2">
                   ✝ {CHURCH_NAME}
                 </p>
-                <p className="text-white/60 text-sm leading-relaxed max-w-xs">
+                <a
+                  href={
+                    churchInfo?.mapUrl ||
+                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      churchInfo?.address || 'GDM Church, Chopparamma Gudem, Koyyalagudem, West Godavari 534312'
+                    )}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 hover:text-white/90 text-sm leading-relaxed
+                             max-w-xs underline underline-offset-2 transition-colors duration-200"
+                >
                   {churchInfo?.address ||
                     'Chopparamma Gudem, Koyyalagudem, West Godavari — 534312'}
-                </p>
+                </a>
               </div>
 
               {/* Centre — phone */}

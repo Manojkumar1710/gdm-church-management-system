@@ -1,0 +1,94 @@
+# ─────────────────────────────────────────────────────────────────
+# Container / production profile for the Docker image (Render, etc.).
+#
+# Activated via SPRING_PROFILES_ACTIVE=render (set in the Dockerfile).
+#
+# This file is COMMITTED and safe to bake into the image: it contains
+# NO secrets. Every secret is injected at runtime through environment
+# variables. Required secrets have no default, so a missing value
+# fails fast at startup instead of silently using a placeholder.
+#
+# Local development does NOT use this file — it uses application.yml
+# (gitignored, local only) under the default profile.
+#
+# Environment variables consumed here (must match application.yml):
+#   DB_URL, DB_USERNAME, DB_PASSWORD
+#   PORT
+#   JWT_SECRET, JWT_EXPIRATION_MS
+#   FRONTEND_URL
+#   ADMIN_SEED_EMAIL, ADMIN_SEED_PASSWORD
+#   RATE_LIMIT_ENABLED
+#   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+#   SWAGGER_ENABLED
+#   LOG_LEVEL_APP
+# ─────────────────────────────────────────────────────────────────
+
+spring:
+  application:
+    name: gdm-church-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/gdm_church?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 20
+    open-in-view: false
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 60MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${FRONTEND_URL:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}
+  admin:
+    seed-email: ${ADMIN_SEED_EMAIL:admin@gdmchurch.org}
+    # Empty default preserves the AuthService "skip seeding if blank" path;
+    # set ADMIN_SEED_PASSWORD in the host environment to seed the admin.
+    seed-password: ${ADMIN_SEED_PASSWORD:}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: ${SWAGGER_ENABLED:true}
+    operations-sorter: alpha
+
+logging:
+  level:
+    com.gdm.church: ${LOG_LEVEL_APP:INFO}
+    org.springframework.security: WARN

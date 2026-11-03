@@ -77,8 +77,6 @@ export default function PrayerPage() {
             {t('prayer.subtitle')}
           </p>
         </div>
-        <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-white to-transparent"
-             aria-hidden="true" />
       </div>
 
       {/* ── Form area ───────────────────────────────────────────── */}

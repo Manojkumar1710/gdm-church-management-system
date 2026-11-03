@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────
+# Docker build context = REPOSITORY ROOT.
+# Docker reads THIS file — not backend/.dockerignore — because the
+# build is invoked as:  docker build -f backend/Dockerfile -t gdm-church-backend .
+# All patterns below are relative to the repository root.
+# ─────────────────────────────────────────────────────────────────
+
+# ── Secrets & local-only config (NEVER bake into the image) ──────
+# application.yml is gitignored and holds real local dev secrets.
+# Production config comes from the committed application-render.yml
+# (activated via SPRING_PROFILES_ACTIVE=render in the Dockerfile).
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-prod.yml
+backend/.env
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# ── Build artifacts ───────────────────────────────────────────────
+backend/target/
+**/target/
+*.class
+*.jar
+*.war
+
+# ── Git ──────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── IDE & OS noise ────────────────────────────────────────────────
+.idea/
+**/*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── Frontend (not needed for the backend image) ───────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── Runtime uploads & logs ────────────────────────────────────────
+backend/uploads/
+uploads/
+*.log
+**/logs/

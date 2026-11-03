@@ -38,7 +38,8 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const MAX_BYTES      = 10 * 1024 * 1024; // 10 MB
+const MAX_BYTES      = 25 * 1024 * 1024; // 25 MB
+const MAX_MB         = 25;
 
 function validateFiles(files, t) {
   const valid   = [];
@@ -68,8 +69,9 @@ export default function ImageDropZone({
   const { t }             = useLanguage();
   const fileRef           = useRef(null);
   const zoneRef           = useRef(null);
-  const [dragOver, setDragOver]   = useState(false);
-  const [pasting,  setPasting]    = useState(false); // brief flash when paste fires
+  const [dragOver, setDragOver]         = useState(false);
+  const [pasting,  setPasting]          = useState(false);
+  const [fileInfo, setFileInfo]         = useState(null);  // { name, sizeMB } for single-file mode
 
   // ── File processing ──────────────────────────────────────────────
   const processFiles = useCallback((rawFiles) => {
@@ -82,8 +84,14 @@ export default function ImageDropZone({
 
     if (!multiple) {
       // Single-image mode: only take the first valid file
-      onFiles([valid[0]]);
+      const chosen = valid[0];
+      setFileInfo({
+        name:   chosen.name,
+        sizeMB: (chosen.size / (1024 * 1024)).toFixed(1),
+      });
+      onFiles([chosen]);
     } else {
+      setFileInfo(null);
       onFiles(valid);
     }
   }, [onFiles, multiple, t]);
@@ -248,6 +256,22 @@ export default function ImageDropZone({
           alt={previewAlt}
           className="mb-2 h-28 w-full max-w-[200px] rounded-xl border border-church-border object-cover shadow-sm"
         />
+      )}
+
+      {/* Selected file info — shown in single-file mode once a file is chosen */}
+      {fileInfo && !isDragActive && !isPasteFlash && (
+        <div className="w-full rounded-xl border border-church-border bg-church-light px-4 py-2.5 text-left text-xs text-gray-600 space-y-0.5">
+          <p className="font-semibold text-church-blue truncate" title={fileInfo.name}>
+            📎 {fileInfo.name}
+          </p>
+          <p>
+            <span className="font-medium">{t('admin.upload.fileSize')}: </span>
+            <span className={parseFloat(fileInfo.sizeMB) > MAX_MB * 0.9 ? 'text-amber-600 font-semibold' : ''}>
+              {fileInfo.sizeMB} MB
+            </span>
+            <span className="text-gray-400"> / {MAX_MB} MB {t('admin.upload.maxAllowed')}</span>
+          </p>
+        </div>
       )}
 
       {/* Icon */}

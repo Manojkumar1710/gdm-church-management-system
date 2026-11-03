@@ -69,7 +69,19 @@ export default function AboutPage() {
         <div className="bg-church-blue text-white p-6 rounded-xl">
           <h3 className="font-bold text-lg mb-3 text-church-gold">{t('contact.findUs')}</h3>
           <div className="space-y-2 text-white/80 text-sm mb-4">
-            {info.address && <p>📍 {info.address}</p>}
+            {info.address && (
+                <p>
+                  📍{' '}
+                  <a
+                    href={info.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white underline underline-offset-2 transition-colors"
+                  >
+                    {info.address}
+                  </a>
+                </p>
+            )}
             {info.phone && (
               <p>📞 <a href={`tel:${info.phone}`} className="hover:text-white transition-colors">{info.phone}</a></p>
             )}
