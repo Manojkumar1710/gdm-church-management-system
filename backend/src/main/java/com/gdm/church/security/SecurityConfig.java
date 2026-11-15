@@ -83,6 +83,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/gallery/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/offering-purposes/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/sunday-school/programs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/songs/**").permitAll()
 
                 // Public POST submissions
                 .requestMatchers(HttpMethod.POST, "/api/v1/offerings").permitAll()

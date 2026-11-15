@@ -15,6 +15,7 @@ const NAV_KEYS = [
   { key: 'photos',      to: '/photos' },
   { key: 'pastors',     to: '/pastors' },
   { key: 'sermons',     to: '/sermons' },
+  { key: 'songs',        to: '/songs' },
   { key: 'gallery',     to: '/gallery' },
   { key: 'sundaySchool',to: '/sunday-school' },
   { key: 'contact',     to: '/contact' },

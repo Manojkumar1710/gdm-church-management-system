@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   HomeIcon, CalendarIcon, PhotoIcon, UserGroupIcon, BookOpenIcon,
-  PlayIcon, RectangleGroupIcon, BanknotesIcon, HandRaisedIcon,
+  PlayIcon, RectangleGroupIcon, BanknotesIcon, HandRaisedIcon, MusicalNoteIcon,
   EnvelopeIcon, AcademicCapIcon, Bars3Icon, XMarkIcon,
   ArrowRightOnRectangleIcon, GlobeAltIcon, ChevronRightIcon,
 } from '@heroicons/react/24/outline';
@@ -23,6 +23,7 @@ const NAV_GROUPS = [
       { key: 'sermons',        to: '/admin/sermons',                match: '/admin/sermons',               icon: BookOpenIcon },
       { key: 'youtube',        to: '/admin/youtube',                match: '/admin/youtube',               icon: PlayIcon },
       { key: 'gallery',        to: '/admin/gallery',                match: '/admin/gallery',               icon: RectangleGroupIcon },
+      { key: 'songs',          to: '/admin/songs',                  match: '/admin/songs',                  icon: MusicalNoteIcon },
     ],
   },
   {

@@ -19,6 +19,8 @@ import PrayerPage from './pages/PrayerPage';
 import ContactPage from './pages/ContactPage';
 import OfferingsPage from './pages/OfferingsPage';
 import SundaySchoolPage from './pages/SundaySchoolPage';
+import SongList from './pages/SongList';
+import SongDetail from './pages/SongDetail';
 
 // Admin
 import LoginPage from './admin/LoginPage';
@@ -35,6 +37,7 @@ import AdminOfferingsPage from './admin/AdminOfferingsPage';
 import AdminPrayerPage from './admin/AdminPrayerPage';
 import AdminContactPage from './admin/AdminContactPage';
 import AdminSundaySchoolPage from './admin/AdminSundaySchoolPage';
+import AdminSongsPage from './admin/AdminSongsPage';
 
 function AdminRoute({ children }) {
   return (
@@ -78,6 +81,8 @@ export default function App() {
             <Route path="/offerings" element={<OfferingsPage />} />
             <Route path="/sunday-school" element={<SundaySchoolPage />} />
             <Route path="/sunday-school/programs" element={<SundaySchoolPage />} />
+            <Route path="/songs" element={<SongList />} />
+            <Route path="/songs/:id" element={<SongDetail />} />
           </Route>
 
           {/* ── Admin auth ── */}
@@ -98,6 +103,7 @@ export default function App() {
           <Route path="/admin/contact-messages" element={<AdminRoute><AdminContactPage /></AdminRoute>} />
           <Route path="/admin/sunday-school/:section" element={<SundaySchoolRoute><AdminSundaySchoolPage /></SundaySchoolRoute>} />
           <Route path="/admin/sunday-school" element={<Navigate to="/admin/sunday-school/children" replace />} />
+          <Route path="/admin/songs" element={<AdminRoute><AdminSongsPage /></AdminRoute>} />
 
           {/* ── 404 fallback ── */}
           <Route path="*" element={
