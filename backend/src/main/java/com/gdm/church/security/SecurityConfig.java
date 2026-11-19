@@ -71,6 +71,10 @@ public class SecurityConfig {
                 // Public auth
                 .requestMatchers("/api/v1/auth/login").permitAll()
 
+                // Public health check (UptimeRobot — GET + HEAD, no JWT)
+                .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
+                .requestMatchers(HttpMethod.HEAD, "/api/v1/health").permitAll()
+
                 // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/church/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/hero/**").permitAll()

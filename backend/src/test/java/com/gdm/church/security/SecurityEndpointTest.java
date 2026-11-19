@@ -34,6 +34,37 @@ class SecurityEndpointTest {
 
     // ── Public endpoints (no token) ──────────────────────────────────
 
+    @Test @DisplayName("GET /api/v1/health — public, no token needed, 200")
+    void getHealth_public_succeeds() throws Exception {
+        mockMvc.perform(get("/api/v1/health"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.success").value(true))
+               .andExpect(jsonPath("$.message").value("Application is running"))
+               .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test @DisplayName("HEAD /api/v1/health — public, no token needed, 200")
+    void headHealth_public_succeeds() throws Exception {
+        // MockMvc does not suppress the body for HEAD like a real container does;
+        // the key assertion is that HEAD is permitted (200, not 401).
+        mockMvc.perform(head("/api/v1/health"))
+               .andExpect(status().isOk());
+    }
+
+    @Test @DisplayName("GET /api/v1/health — response does not leak sensitive info")
+    void getHealth_noSensitiveInfo() throws Exception {
+        String body = mockMvc.perform(get("/api/v1/health"))
+               .andExpect(status().isOk())
+               .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).doesNotContain("password");
+        assertThat(body).doesNotContain("secret");
+        assertThat(body).doesNotContain("jwt");
+        assertThat(body).doesNotContain("cloudinary");
+        assertThat(body).doesNotContain("database");
+        assertThat(body).doesNotContain("stack");
+    }
+
     @Test @DisplayName("GET /api/v1/church — public, no token needed")
     void getChurch_public_succeeds() throws Exception {
         mockMvc.perform(get("/api/v1/church"))
