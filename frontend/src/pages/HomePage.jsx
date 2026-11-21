@@ -596,39 +596,7 @@ function EventVisual({ event, aspect }) {
   );
 }
 
-function FeaturedEventCard({ event, t, lang }) {
-  const title = localized(event, 'title', lang);
-  const description = localized(event, 'description', lang);
-  const location = localized(event, 'location', lang);
-
-  return (
-    <Link
-      to={`/events/${event.id}`}
-      className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
-    >
-      <EventVisual event={{ ...event, title }} aspect="aspect-[16/10]" />
-      <div className="home-card-info flex flex-1 flex-col p-6 sm:p-7">
-        <Label>{t('home.featuredEvent')}</Label>
-        <h3 className="mt-2 font-serif text-2xl font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
-          {title}
-        </h3>
-        {description && <p className="mt-3 line-clamp-3 text-sm leading-7 text-gray-600">{description}</p>}
-        {location && (
-          <p className="mt-auto flex items-center gap-2 pt-5 text-sm text-gray-500">
-            <MapPinIcon className="h-4 w-4 shrink-0 text-church-gold" aria-hidden="true" />
-            <span className="truncate">{location}</span>
-          </p>
-        )}
-        <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-church-blue">
-          {t('home.viewDetails')}
-          <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function CompactEventCard({ event, lang }) {
+function UniformEventCard({ event, t, lang }) {
   const title = localized(event, 'title', lang);
   const description = localized(event, 'description', lang);
   const location = localized(event, 'location', lang);
@@ -639,20 +607,35 @@ function CompactEventCard({ event, lang }) {
       className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
     >
       <EventVisual event={{ ...event, title }} aspect="aspect-[16/9]" />
-      <div className="home-card-info flex flex-1 flex-col p-5">
+      <div className="home-card-info flex flex-1 flex-col p-5 sm:p-6">
         <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
           {title}
         </h3>
-        {description && <p className="mt-2 line-clamp-2 text-sm leading-6 text-gray-600">{description}</p>}
+        {description && (
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-gray-600">{description}</p>
+        )}
         {location && (
           <p className="mt-auto flex items-center gap-1.5 pt-4 text-xs text-gray-500">
             <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-church-gold" aria-hidden="true" />
             <span className="truncate">{location}</span>
           </p>
         )}
+        <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-church-blue">
+          {t('home.viewDetails')}
+          <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+        </span>
       </div>
     </Link>
   );
+}
+
+function FeaturedEventCard({ event, t, lang }) {
+  return <UniformEventCard event={event} t={t} lang={lang} />;
+}
+
+function CompactEventCard({ event, lang }) {
+  const { t } = useLanguage();
+  return <UniformEventCard event={event} t={t} lang={lang} />;
 }
 
 function EventsSection({ events, loading, t }) {
@@ -681,17 +664,12 @@ function EventsSection({ events, loading, t }) {
         ) : events.length === 0 ? (
           <EmptyPanel icon={CalendarIcon} title={t('home.noEvents')} message={t('home.checkBackSoon')} />
         ) : (
-          <HomeStagger className={`grid gap-6 ${events.length === 1 ? 'lg:grid-cols-1' : events.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
-            <div className={events.length >= 3 ? 'lg:col-span-2' : ''}>
-              <FeaturedEventCard event={events[0]} t={t} lang={lang} />
-            </div>
-            {events.length >= 2 && (
-              <HomeStagger className={events.length >= 3 ? 'lg:col-span-1 flex flex-col gap-6' : ''} step={0.08}>
-                {events.slice(1, 3).map(event => (
-                  <CompactEventCard key={event.id} event={event} lang={lang} />
-                ))}
-              </HomeStagger>
-            )}
+          <HomeStagger className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
+            {events.slice(0, 3).map(event => (
+              <div key={event.id} className="h-full">
+                <UniformEventCard event={event} t={t} lang={lang} />
+              </div>
+            ))}
           </HomeStagger>
         )}
       </div>
@@ -728,7 +706,7 @@ function SermonVisual({ sermon, aspect, lang }) {
   );
 }
 
-function FeaturedSermonCard({ sermon, t, lang, dateLocale }) {
+function UniformSermonCard({ sermon, t, lang, dateLocale }) {
   const title = localized(sermon, 'title', lang);
   const description = localized(sermon, 'description', lang);
   const speaker = localized(sermon, 'speaker', lang);
@@ -739,17 +717,18 @@ function FeaturedSermonCard({ sermon, t, lang, dateLocale }) {
       to={`/sermons/${sermon.id}`}
       className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
     >
-      <SermonVisual sermon={sermon} aspect="aspect-[16/9]" lang={lang} />
-      <div className="home-card-info flex flex-1 flex-col p-6 sm:p-7">
-        <Label>{t('home.featuredMessage')}</Label>
-        <h3 className="mt-2 font-serif text-2xl font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
+      <SermonVisual sermon={sermon} aspect="aspect-video" lang={lang} />
+      <div className="home-card-info flex flex-1 flex-col p-5 sm:p-6">
+        <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
           {title}
         </h3>
-        <p className="mt-3 text-sm text-gray-500">
+        <p className="mt-2 text-xs text-gray-500">
           {[speaker, dateStr].filter(Boolean).join(' · ')}
         </p>
-        {description && <p className="mt-3 line-clamp-2 text-sm leading-7 text-gray-600">{description}</p>}
-        <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-church-blue">
+        {description && (
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">{description}</p>
+        )}
+        <span className="mt-auto pt-4 inline-flex items-center gap-2 text-sm font-semibold text-church-blue">
           {t('home.watchMessage')}
           <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
         </span>
@@ -758,27 +737,14 @@ function FeaturedSermonCard({ sermon, t, lang, dateLocale }) {
   );
 }
 
-function CompactSermonCard({ sermon, lang, dateLocale }) {
-  const title = localized(sermon, 'title', lang);
-  const speaker = localized(sermon, 'speaker', lang);
-  const dateStr = formatSermonDate(sermon.sermonDate, dateLocale);
+/* kept as thin wrappers so nothing else in the file breaks */
+function FeaturedSermonCard({ sermon, t, lang, dateLocale }) {
+  return <UniformSermonCard sermon={sermon} t={t} lang={lang} dateLocale={dateLocale} />;
+}
 
-  return (
-    <Link
-      to={`/sermons/${sermon.id}`}
-      className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
-    >
-      <SermonVisual sermon={sermon} aspect="aspect-video" lang={lang} />
-      <div className="home-card-info flex flex-1 flex-col p-5">
-        <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
-          {title}
-        </h3>
-        <p className="mt-3 text-xs text-gray-500">
-          {[speaker, dateStr].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-    </Link>
-  );
+function CompactSermonCard({ sermon, lang, dateLocale }) {
+  const { t } = useLanguage();
+  return <UniformSermonCard sermon={sermon} t={t} lang={lang} dateLocale={dateLocale} />;
 }
 
 function SermonsSection({ sermons, loading, t, dateLocale }) {
@@ -806,15 +772,12 @@ function SermonsSection({ sermons, loading, t, dateLocale }) {
         ) : sermons.length === 0 ? (
           <EmptyPanel icon={PlayIcon} title={t('sermons.noSermons')} message={t('home.sermonsDescription')} />
         ) : (
-          <HomeStagger className={`grid gap-6 ${sermons.length === 1 ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
-            <div className={sermons.length === 1 ? '' : 'lg:col-span-2'}>
-              <FeaturedSermonCard sermon={sermons[0]} t={t} lang={lang} dateLocale={dateLocale} />
-            </div>
-            <HomeStagger className={sermons.length === 1 ? '' : 'lg:col-span-1'} step={0.08}>
-              {sermons.slice(1, 3).map(sermon => (
-                <CompactSermonCard key={sermon.id} sermon={sermon} lang={lang} dateLocale={dateLocale} />
-              ))}
-            </HomeStagger>
+          <HomeStagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {sermons.slice(0, 3).map(sermon => (
+              <div key={sermon.id} className="h-full">
+                <UniformSermonCard sermon={sermon} t={t} lang={lang} dateLocale={dateLocale} />
+              </div>
+            ))}
           </HomeStagger>
         )}
       </div>
