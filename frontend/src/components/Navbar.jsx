@@ -27,7 +27,7 @@ function DesktopLink({ label, to, end }) {
     <NavLink
       to={to}
       end={end}
-      className="relative px-2.5 py-1.5 text-sm font-medium transition-colors duration-300
+      className="relative px-2.5 py-2 text-sm font-medium transition-colors duration-300
                  whitespace-nowrap group focus:outline-none focus-visible:ring-2
                  focus-visible:ring-white rounded-md"
     >
@@ -56,6 +56,8 @@ export default function Navbar() {
   const location   = useLocation();
   const reduced    = useReducedMotion();
   const { t }      = useLanguage();
+
+  const closeMenu = () => setOpen(false);
 
   /* Close drawer on route change */
   useEffect(() => { setOpen(false); }, [location.pathname]);
@@ -113,8 +115,8 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* ── Desktop links + language switcher (collapse at lg) ── */}
-            <div className="hidden lg:flex items-center gap-0.5">
+            {/* ── Desktop links + language switcher (collapse at xl) ── */}
+            <div className="hidden xl:flex items-center gap-0.5">
               {NAV_KEYS.map(({ key, to, end }) => (
                 <DesktopLink key={to} label={t(`nav.${key}`)} to={to} end={end} />
               ))}
@@ -131,9 +133,9 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* ── Hamburger (visible below lg) ── */}
+            {/* ── Hamburger (visible below xl) ── */}
             <button
-              className="lg:hidden p-2 rounded-lg text-white/80 hover:text-white
+              className="xl:hidden p-2 rounded-lg text-white/80 hover:text-white
                          hover:bg-white/10 transition-colors
                          focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               onClick={() => setOpen(v => !v)}
@@ -156,20 +158,20 @@ export default function Navbar() {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              className="fixed inset-0 z-40 bg-black/50 xl:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              onClick={() => setOpen(false)}
+              onClick={closeMenu}
               aria-hidden="true"
             />
 
             {/* Slide-in panel from the right */}
             <motion.aside
               id="mobile-menu"
-              className="fixed top-0 right-0 bottom-0 z-50 w-72 lg:hidden
-                         flex flex-col bg-navy-950 shadow-2xl overflow-y-auto"
+              className="fixed top-0 right-0 bottom-0 z-50 w-72 max-w-[85vw] xl:hidden
+                         flex flex-col bg-navy-950 shadow-2xl overflow-y-auto overscroll-contain"
               initial={{ x: reduced ? 0 : '100%', opacity: reduced ? 0 : 1 }}
               animate={{ x: 0,    opacity: 1 }}
               exit={{    x: reduced ? 0 : '100%', opacity: 0 }}
@@ -194,7 +196,7 @@ export default function Navbar() {
                   </span>
                 </span>
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={closeMenu}
                   className="p-1.5 rounded-lg text-white/60 hover:text-white
                              hover:bg-white/10 transition-colors
                              focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -206,7 +208,7 @@ export default function Navbar() {
 
               {/* Language switcher inside drawer */}
               <div className="px-5 pt-4 pb-2">
-                <LanguageSwitcher dark />
+                <LanguageSwitcher />
               </div>
 
               {/* Nav links */}
@@ -216,12 +218,13 @@ export default function Navbar() {
                     key={to}
                     to={to}
                     end={end}
+                    onClick={closeMenu}
                     className={({ isActive }) =>
                       `flex items-center px-4 py-3 rounded-xl text-sm font-medium
                        transition-colors duration-200 ${
                         isActive
                           ? 'bg-white/15 text-white border-l-2 border-church-gold pl-3.5'
-                          : 'text-white/70 hover:bg-white/8 hover:text-white'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
                       }`
                     }
                   >
@@ -234,6 +237,7 @@ export default function Navbar() {
               <div className="px-4 pb-6 pt-2 border-t border-white/10">
                 <Link
                   to="/offerings"
+                  onClick={closeMenu}
                   className="flex items-center justify-center gap-2 w-full
                              btn-gold rounded-xl py-3 text-sm font-semibold"
                 >

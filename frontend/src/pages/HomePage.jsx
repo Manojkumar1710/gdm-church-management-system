@@ -1,211 +1,651 @@
-/**
- * HomePage — Complete redesign
- *
- * Photography-led professional church homepage.
- * All API calls and data-fetching are UNCHANGED from the previous version.
- * Only presentation / layout / markup changes.
- *
- * Sections (in order):
- *   1. Hero             — full-width cross-at-sunset photo, left-aligned text
- *   2. Upcoming Events  — 2-col intro + card grid
- *   3. Latest Sermons   — label + cards
- *   4. About Church     — image + text
- *   5. Event Photos     — gallery preview row
- *   6. Our Pastors      — dark band with cards
- *   7. Prayer Banner    — full-width hands-on-Bible photo
- *   8. Contact strip    — compact navy band
- */
-
-import { useEffect, useState } from 'react';
-import { Link }               from 'react-router-dom';
-import { churchService }      from '../services/churchService';
-import { eventService }       from '../services/eventService';
-import { sermonService }      from '../services/sermonService';
-import { pastorService }      from '../services/pastorService';
-import { CardSkeleton }       from '../components/Skeleton';
-import Reveal                 from '../components/motion/Reveal';
-import { StaggerItem }        from '../components/motion/Stagger';
+import { Children, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { churchService } from '../services/churchService';
+import { eventService } from '../services/eventService';
+import { sermonService } from '../services/sermonService';
+import { pastorService } from '../services/pastorService';
+import { CardSkeleton } from '../components/Skeleton';
 import {
   CalendarIcon,
   MapPinIcon,
   PlayIcon,
   ArrowRightIcon,
   PhoneIcon,
+  ClockIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline';
 import { getYoutubeId, getYoutubeThumbnail } from '../utils/youtube';
-import { CHURCH_NAME }     from '../config/church';
-import { useLanguage }     from '../context/LanguageContext';
+import { CHURCH_NAME } from '../config/church';
+import { useLanguage } from '../context/LanguageContext';
+import AnimatedText, { useInViewOnce } from '../components/motion/AnimatedText';
 
-/* ── Local photography assets ───────────────────────────────── */
-import heroCrossImg  from '../assets/images/hero-cross.jpg';
-import prayerBgImg   from '../assets/images/prayer-bg.jpg';
-import heroBibleImg  from '../assets/images/hero-bible.jpg';
-import doveImg       from '../assets/images/dove.png';
+import heroCrossImg from '../assets/images/hero-cross.jpg';
+import prayerBgImg from '../assets/images/prayer-bg.jpg';
+import heroBibleImg from '../assets/images/hero-bible.jpg';
+import doveImg from '../assets/images/dove.png';
+import churchImg from '../assets/images/church.jpg';
 
-/* ─────────────────────────────────────────────────────────────
-   SECTION LABEL  (small gold uppercase label above headings)
-   ───────────────────────────────────────────────────────────── */
-function Label({ children }) {
+const HOME_STYLES = `
+.home-redesign {
+  --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.home-redesign .home-hero-photo {
+  animation: homeHeroZoom 12s var(--home-ease) 0s infinite alternate;
+  transform-origin: 70% center;
+  will-change: transform;
+}
+@keyframes homeHeroZoom {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.07); }
+}
+.home-redesign .home-hero-warm-light {
+  background:
+    radial-gradient(circle at 82% 28%, rgba(255, 232, 176, 0.12), transparent 34%),
+    radial-gradient(circle at 62% 74%, rgba(201, 168, 76, 0.08), transparent 30%),
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.04), transparent 26%);
+  animation: homeHeroGlowPulse 4s var(--home-ease) 0s infinite alternate;
+}
+.home-redesign .home-hero-warm-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 74% 30%, rgba(255, 240, 198, 0.08), transparent 18%),
+    radial-gradient(circle at 88% 66%, rgba(201, 168, 76, 0.06), transparent 16%);
+  animation: homeHeroFloat 9s var(--home-ease) infinite alternate;
+}
+@keyframes homeHeroGlowPulse {
+  from { opacity: 0.66; }
+  to { opacity: 1; }
+}
+@keyframes homeHeroFloat {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-10px, 8px, 0); }
+}
+.home-redesign .home-hero-badge {
+  animation: homeFadeIn 0.7s 0.05s var(--home-ease) both;
+}
+.home-redesign .home-hero-title {
+  animation: homeRiseIn 0.9s 0.2s var(--home-ease) both;
+  text-shadow: 0 0 30px rgba(201, 168, 76, 0.26);
+}
+.home-redesign .home-hero-title-line {
+  display: block;
+  white-space: nowrap;
+}
+.home-redesign .home-hero-description {
+  animation: homeRiseIn 0.8s 0.7s var(--home-ease) both;
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.12);
+}
+.home-redesign .home-hero-actions {
+  animation: homeRiseIn 0.7s 1s var(--home-ease) both;
+}
+.home-redesign .home-letter-reveal {
+  display: block;
+}
+.home-redesign .home-letter-reveal--inline {
+  display: inline;
+}
+.home-redesign .home-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(12px);
+  white-space: pre;
+  will-change: opacity, transform;
+}
+.home-redesign .home-letter-reveal.is-visible .home-letter {
+  animation: homeLetterReveal 450ms var(--home-ease) both;
+}
+@keyframes homeLetterReveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.home-redesign .home-hero-badge-dove,
+.home-redesign .home-hero-dove img,
+.home-redesign .home-prayer-dove img {
+  animation: homeDoveFloat 3.5s ease-in-out infinite, homeDoveGlow 2.8s ease-in-out infinite;
+  will-change: transform, filter;
+}
+.home-redesign .home-hero-dove {
+  opacity: 0.92;
+  z-index: 1;
+}
+.home-redesign .home-hero-dove::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.20), transparent 70%);
+}
+.home-redesign .home-prayer-dove {
+  box-shadow: 0 0 30px rgba(201, 168, 76, 0.18);
+  animation: homeMedallionGlow 2.8s ease-in-out infinite;
+}
+@keyframes homeDoveFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes homeDoveGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.42))
+            drop-shadow(0 0 14px rgba(201, 168, 76, 0.18));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.62))
+            drop-shadow(0 0 24px rgba(201, 168, 76, 0.28));
+  }
+}
+@keyframes homeMedallionGlow {
+  0%, 100% { box-shadow: 0 0 24px rgba(201, 168, 76, 0.14); }
+  50% { box-shadow: 0 0 38px rgba(201, 168, 76, 0.26); }
+}
+.home-redesign .home-hero-cta,
+.home-redesign .btn-outline-navy,
+.home-redesign .btn-outline-light,
+.home-redesign .home-play-button,
+.home-redesign .home-pastor-card a {
+  transition-duration: 0.25s;
+}
+.home-redesign .home-hero-cta {
+  transition-property: transform, box-shadow, background-color, color, border-color;
+}
+.home-redesign .home-hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(201, 168, 76, 0.45), 0 14px 34px rgba(201, 168, 76, 0.22);
+}
+.home-redesign .home-hero-cta--outline:hover {
+  box-shadow: 0 0 0 1px rgba(201, 168, 76, 0.55), 0 12px 30px rgba(201, 168, 76, 0.16);
+}
+.home-redesign .home-card-hover {
+  transition-property: transform, box-shadow, border-color, background-color;
+  transition-duration: 0.3s;
+  transition-timing-function: var(--home-ease);
+}
+.home-redesign .home-media-hover img,
+.home-redesign .home-pastor-photo {
+  transition: transform 0.5s var(--home-ease);
+}
+.home-redesign .home-media-hover:hover img,
+.home-redesign .home-pastor-card:hover .home-pastor-photo {
+  transform: scale(1.06);
+}
+.home-redesign .home-anim {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.home-redesign .home-anim.is-in {
+  animation: homeRiseIn var(--home-duration, 0.75s) var(--home-ease) var(--home-delay, 0s) both;
+}
+.home-redesign .home-welcome-media.home-anim {
+  transform: none;
+}
+.home-redesign .home-welcome-media.home-anim.is-in {
+  animation: homeFadeIn 0.9s var(--home-ease) both, homeMediaZoom 1.2s var(--home-ease) both;
+}
+.home-redesign .home-stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.home-redesign .home-stagger.is-in > .home-stagger-item {
+  animation: homeStaggerIn var(--home-duration, 0.75s) var(--home-ease)
+             calc(var(--stagger-index) * var(--stagger-step, 0.15s)) both;
+}
+.home-redesign .home-gallery .home-stagger-item {
+  opacity: 0;
+  transform: translateY(18px) scale(0.97);
+}
+.home-redesign .home-gallery.is-in > .home-stagger-item {
+  animation: homeGalleryIn var(--home-duration, 0.7s) var(--home-ease)
+             calc(var(--stagger-index) * var(--stagger-step, 0.12s)) both;
+}
+.home-redesign .home-card-info {
+  opacity: 0;
+}
+.home-redesign .home-anim.is-in .home-card-info,
+.home-redesign .home-stagger.is-in .home-card-info {
+  animation: homeFadeIn 0.5s var(--home-ease) 0.12s both;
+}
+@keyframes homeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes homeRiseIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes homeMediaZoom {
+  from { transform: scale(1.03); }
+  to { transform: scale(1); }
+}
+@keyframes homeStaggerIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes homeGalleryIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+body.home-page-active footer .grid > div { min-width: 0; }
+body.home-page-active footer .section-label { line-height: 1.7; }
+html[lang="te"] body.home-page-active footer { line-height: 1.85; }
+html[lang="te"] body.home-page-active footer p,
+html[lang="te"] body.home-page-active footer li,
+html[lang="te"] body.home-page-active footer a { line-height: 1.85; overflow-wrap: break-word; }
+html[lang="te"] body.home-page-active footer .section-label { letter-spacing: 0.04em; line-height: 1.9; }
+html[lang="te"] body.home-page-active footer .flex.items-start { align-items: flex-start; }
+html[lang="te"] body.home-page-active footer svg { margin-top: 0.2rem; }
+html[lang="te"] body.home-page-active footer .break-all { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  .home-redesign .home-hero-photo,
+  .home-redesign .home-hero-warm-light,
+  .home-redesign .home-hero-warm-light::after,
+  .home-redesign .home-hero-badge,
+  .home-redesign .home-hero-title,
+  .home-redesign .home-hero-description,
+  .home-redesign .home-hero-actions,
+  .home-redesign .home-hero-badge-dove,
+  .home-redesign .home-hero-dove img,
+  .home-redesign .home-prayer-dove,
+  .home-redesign .home-prayer-dove img,
+  .home-redesign .home-letter,
+  .home-redesign .home-anim,
+  .home-redesign .home-stagger-item,
+  .home-redesign .home-card-info {
+    animation: none !important;
+    transition: none !important;
+  }
+  .home-redesign .home-letter,
+  .home-redesign .home-anim,
+  .home-redesign .home-stagger-item,
+  .home-redesign .home-card-info {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .home-redesign .home-hero-cta:hover,
+  .home-redesign .home-media-hover:hover img,
+  .home-redesign .home-pastor-card:hover .home-pastor-photo {
+    transform: none !important;
+  }
+}
+`;
+
+function formatEventTime(value, locale) {
+  if (!value) return '';
+  const match = String(value).match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return String(value);
+  const time = new Date();
+  time.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return time.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+}
+
+function formatSermonDate(value, locale) {
+  if (!value) return '';
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(locale, {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+}
+
+function fallbackImage(event) {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = heroBibleImg;
+}
+
+function localized(item, field, lang) {
+  if (!item) return '';
+  const translations = item.translations || {};
+  const en = item[`${field}En`] ?? item[`${field}_en`] ?? translations.en?.[field] ?? translations[field]?.en;
+  const te = item[`${field}Te`] ?? item[`${field}_te`] ?? translations.te?.[field] ?? translations[field]?.te;
+  return (lang === 'te' ? te || en : en || item[field]) || item[field] || '';
+}
+
+function HomeAnim({ as: Tag = 'div', className = '', delay = 0, duration = 0.75, style, children, ...rest }) {
+  const [ref, inView] = useInViewOnce(0.12);
+
   return (
-    <p className="text-church-gold text-xs font-bold uppercase tracking-[0.18em] mb-3">
+    <Tag
+      ref={ref}
+      className={`home-anim ${inView ? 'is-in' : ''} ${className}`}
+      style={{
+        ...style,
+        '--home-delay': `${delay}s`,
+        '--home-duration': `${duration}s`,
+      }}
+      {...rest}
+    >
       {children}
-    </p>
+    </Tag>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   1. HERO SECTION
-   ───────────────────────────────────────────────────────────── */
+function HomeStagger({ children, className = '', step = 0.15, duration = 0.75 }) {
+  const [ref, inView] = useInViewOnce(0.12);
+
+  return (
+    <div
+      ref={ref}
+      className={`home-stagger ${inView ? 'is-in' : ''} ${className}`}
+      style={{ '--stagger-step': `${step}s`, '--home-duration': `${duration}s` }}
+    >
+      {Children.map(children, (child, index) => (
+        <div
+          className={`home-stagger-item ${child?.props?.className || ''}`}
+          key={child?.key ?? index}
+          style={{ ...child?.props?.style, '--stagger-index': index }}
+        >
+          {child}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Label({ children, className = '' }) {
+  return <p className={`section-label ${className}`}>{children}</p>;
+}
+
+function GoldRule({ light = false }) {
+  return (
+    <div className="mt-5 flex items-center gap-3" aria-hidden="true">
+      <span className={`h-px w-12 ${light ? 'bg-church-gold/70' : 'bg-church-gold'}`} />
+      <span className="text-sm leading-none text-church-gold">+</span>
+      <span className={`h-px w-6 ${light ? 'bg-church-gold/40' : 'bg-church-gold/50'}`} />
+    </div>
+  );
+}
+
+function SectionHeading({ label, lang, title, description, action, light = false, labelClassName = '', titleClassName = '' }) {
+  return (
+    <HomeAnim className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div className="max-w-2xl">
+        <Label className={labelClassName}>
+          <AnimatedText text={label} lang={lang} inline stagger={lang === 'te' ? 0.065 : 0.055} />
+        </Label>
+        <h2 className={`mt-3 font-serif text-3xl font-bold leading-tight sm:text-4xl ${light ? 'text-white' : 'text-church-blue'} ${titleClassName}`}>
+          {title}
+        </h2>
+        <GoldRule light={light} />
+        {description && (
+          <p className={`mt-4 max-w-xl text-sm leading-7 sm:text-base ${light ? 'text-white/70' : 'text-gray-600'}`}>
+            {description}
+          </p>
+        )}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </HomeAnim>
+  );
+}
+
 function HeroSection({ hero }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const bgUrl = hero?.backgroundImageUrl || heroCrossImg;
+  const isTelugu = lang === 'te';
+  const rawLines = (hero?.title || t('home.heroTagline')).split('\n');
+  const lines = lang === 'te' ? rawLines : rawLines.map(line => line.replace(/\.$/, '').toUpperCase());
 
   return (
     <section
-      className="relative w-full overflow-hidden"
-      style={{ minHeight: '88vh' }}
+      className="hero-section relative w-full overflow-hidden"
+      style={{ backgroundColor: '#0d1e31' }}
       aria-label="Welcome hero"
     >
-      {/* Background photo — position right so cross stays visible */}
       <div
-        className="absolute inset-0"
+        className="hero-photo home-hero-photo absolute inset-0 z-0"
         style={{
           backgroundImage: `url(${bgUrl})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center right',
           backgroundRepeat: 'no-repeat',
         }}
         aria-hidden="true"
       />
 
-      {/* Left-to-right overlay — opaque left (text), transparent right (cross) */}
+      <div className="absolute inset-0 z-0 bg-[#081024]/60 lg:hidden" aria-hidden="true" />
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0 hidden lg:block"
         style={{
           background:
-            'linear-gradient(to right, rgba(8,16,36,0.88) 0%, rgba(8,16,36,0.72) 38%, rgba(8,16,36,0.28) 65%, rgba(8,16,36,0.05) 100%)',
+            'linear-gradient(to right, rgba(8,16,36,0.90) 0%, rgba(8,16,36,0.76) 36%, rgba(8,16,36,0.32) 68%, rgba(8,16,36,0.06) 100%)',
         }}
         aria-hidden="true"
       />
+      <div className="home-hero-warm-light pointer-events-none absolute inset-0 z-0" aria-hidden="true" />
 
-      {/* Content — constrained to ~42% width on desktop, full on mobile */}
-      <div
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center"
-        style={{ minHeight: '88vh' }}
-      >
-        <div className="w-full lg:max-w-[44%] pt-28 pb-20">
-
-          {/* Welcome pill */}
-          <div className="inline-flex items-center gap-2 bg-church-gold/20 border border-church-gold/40
-                          rounded-full px-4 py-1.5 mb-6">
-            <img src={doveImg} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
-            <span className="text-church-gold text-xs font-bold uppercase tracking-widest">
+      <div className="page-container hero-section__inner relative z-10 flex items-center pb-14 pt-24 sm:pb-20 sm:pt-28">
+        <div className="w-full max-w-2xl lg:max-w-[52%]">
+          <div className="home-hero-badge mb-6 inline-flex items-center gap-2 rounded-full border border-church-gold/40 bg-church-gold/20 px-4 py-1.5">
+            <img src={doveImg} alt="" aria-hidden="true" className="home-hero-badge-dove h-5 w-5 object-contain" />
+            <span className="text-xs font-bold uppercase tracking-widest text-church-gold">
               {t('home.heroLabel')} {CHURCH_NAME}
             </span>
           </div>
 
-          {/* Headline — clamped so it never overwhelms the photo */}
           <h1
-            className="font-bold text-white leading-[1.10] mb-5 whitespace-pre-line"
+            className="home-hero-title mb-5 max-w-none font-serif font-bold tracking-tight text-white"
             style={{
-              fontFamily: 'Lora, Georgia, serif',
-              fontSize: 'clamp(2rem, 4.5vw, 3.5rem)',
+              fontSize: isTelugu ? 'clamp(1.45rem, 3.2vw, 2.48rem)' : 'clamp(1.92rem, 4.35vw, 3.42rem)',
+              lineHeight: isTelugu ? 1.28 : 1.12,
+              letterSpacing: isTelugu ? '0' : undefined,
             }}
+            aria-label={lines.join(' ')}
           >
-            {hero?.title || t('home.heroTagline')}
+            {lines.map((line, index) => (
+              <span key={`${line}-${index}`} className="home-hero-title-line">
+                <AnimatedText text={line} lang={lang} baseDelay={0.2 + index * 0.16} stagger={lang === 'te' ? 0.065 : 0.055} />
+              </span>
+            ))}
           </h1>
 
-          {/* Subheading */}
-          <p
-            className="text-white/70 leading-relaxed mb-8"
-            style={{ fontSize: 'clamp(0.9rem, 1.4vw, 1.05rem)', maxWidth: '34ch' }}
-          >
+          <p className="home-hero-description mb-8 max-w-[38ch] text-base leading-relaxed text-white/80 sm:text-lg">
             {hero?.subtitle || `${CHURCH_NAME} — ${t('home.heroSubtitle')}`}
           </p>
 
-          {/* CTAs */}
-          <div className="flex flex-wrap gap-3">
+          <div className="home-hero-actions flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
-              to={hero?.primaryCtaUrl || '/about'}
-              className="inline-flex items-center gap-2 bg-church-gold hover:bg-[#b89a3a]
-                         text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-md
-                         transition-colors duration-200"
+              to={hero?.primaryCtaUrl || '/events'}
+              className="btn-gold home-hero-cta h-11 px-6"
             >
-              {hero?.primaryCtaText || t('common.joinUs')}
+              {hero?.primaryCtaText || t('home.upcomingEvents')}
               <ArrowRightIcon className="h-4 w-4" />
             </Link>
             <Link
-              to={hero?.secondaryCtaUrl || '/events'}
-              className="inline-flex items-center gap-2 border border-white/45 hover:border-white
-                         text-white font-semibold text-sm px-6 py-3 rounded-lg
-                         transition-colors duration-200 hover:bg-white/10"
+              to={hero?.secondaryCtaUrl || '/sermons'}
+              className="btn-outline-light home-hero-cta home-hero-cta--outline px-6"
             >
-              {hero?.secondaryCtaText || t('home.upcomingEvents')}
+              {hero?.secondaryCtaText || t('home.watchSermons')}
+              <PlayIcon className="h-4 w-4" />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Dove watermark — bottom-left, very subtle */}
       <div
-        className="absolute bottom-16 left-6 hidden lg:block pointer-events-none select-none"
+        className="home-hero-dove pointer-events-none absolute left-4 top-4 z-0 w-14 select-none sm:left-[4%] sm:top-6 sm:w-20 lg:left-[5%] lg:top-8 lg:w-28"
         aria-hidden="true"
-        style={{ opacity: 0.18 }}
       >
-        <img src={doveImg} alt="" className="w-28 object-contain" style={{ filter: 'brightness(10)' }} />
+        <img src={doveImg} alt="" className="w-full object-contain" />
       </div>
-
-      {/* Bottom fade removed — image runs naturally to the section edge */}
     </section>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   2. UPCOMING EVENTS
-   ───────────────────────────────────────────────────────────── */
-function EventCard({ event }) {
+function WelcomeSection({ churchInfo, t, lang }) {
+  return (
+    <section className="section-pad bg-church-cream" aria-label="Welcome to our church">
+      <div className="page-container grid items-center gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-20">
+        <HomeAnim className="home-welcome-media relative">
+          <div className="home-media-hover relative overflow-hidden rounded-[2rem] bg-white shadow-card">
+            <div className="aspect-[4/3] sm:aspect-[5/4]">
+              <img src={churchImg} alt={CHURCH_NAME} className="h-full w-full object-cover" loading="lazy" onError={fallbackImage} />
+            </div>
+          </div>
+          <div className="absolute -bottom-5 -right-3 hidden w-44 rounded-2xl border border-church-gold/30 bg-white p-5 shadow-card sm:block" aria-hidden="true">
+            <span className="block font-serif text-3xl text-church-gold">+</span>
+            <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.18em] text-church-blue">Grace · Faith · Love</span>
+          </div>
+        </HomeAnim>
+
+        <div>
+          <HomeAnim>
+            <Label>
+              <AnimatedText text={t('home.welcomeLabel')} lang={lang} inline stagger={lang === 'te' ? 0.065 : 0.055} />
+            </Label>
+            <h2 className="mt-3 font-serif text-2xl font-bold leading-tight text-church-blue sm:text-3xl lg:text-[2.25rem]">
+              {t('home.welcomeTitle')}
+            </h2>
+            <GoldRule />
+          </HomeAnim>
+
+          <HomeAnim as="p" delay={0.35} duration={0.7} className="mt-5 text-base leading-8 text-gray-600">
+            {t('home.welcomeIntro')}
+          </HomeAnim>
+          <HomeAnim as="p" delay={0.5} duration={0.7} className="mt-4 text-sm leading-7 text-gray-500">
+            {t('home.welcomeDescription')}
+          </HomeAnim>
+
+          {(churchInfo?.mission || churchInfo?.vision) && (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {churchInfo?.vision && (
+                <div className="rounded-r-xl border-l-4 border-church-gold bg-white/80 p-4 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-widest text-church-gold">{t('about.ourVision')}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">{churchInfo.vision}</p>
+                </div>
+              )}
+              {churchInfo?.mission && (
+                <div className="rounded-r-xl border-l-4 border-church-gold bg-white/80 p-4 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-widest text-church-gold">{t('about.ourMission')}</p>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">{churchInfo.mission}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <HomeAnim delay={0.7} duration={0.65}>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/about" className="btn-primary h-11 px-6">
+                {t('common.learnMore')}
+                <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+              <Link to="/contact" className="btn-outline-navy px-6">
+                {t('common.getInTouch')}
+              </Link>
+            </div>
+          </HomeAnim>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EmptyPanel({ icon: Icon, title, message, action }) {
+  return (
+    <div className="mx-auto max-w-2xl rounded-3xl border border-church-gold/20 bg-white px-6 py-14 text-center shadow-card">
+      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-church-gold/10 text-church-gold">
+        <Icon className="h-7 w-7" aria-hidden="true" />
+      </div>
+      <h3 className="mt-5 font-serif text-xl font-bold text-church-blue">{title}</h3>
+      {message && <p className="mt-2 text-sm leading-7 text-gray-600">{message}</p>}
+      {action && <div className="mt-6 flex justify-center">{action}</div>}
+    </div>
+  );
+}
+
+function EventDateBadge({ event }) {
   const { dateLocale } = useLanguage();
-  const dateStr = event.eventDate
-    ? new Date(event.eventDate + 'T00:00:00').toLocaleDateString(dateLocale, {
-        day: 'numeric', month: 'short', year: 'numeric',
-      })
-    : '';
+  if (!event.eventDate) return null;
+
+  const date = new Date(`${event.eventDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return (
+    <span className="inline-flex items-center gap-2 rounded-2xl border border-church-gold/40 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+      <span className="text-lg font-bold leading-none text-church-blue">{date.getDate()}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-church-gold">
+        {date.toLocaleDateString(dateLocale, { month: 'short' })}
+      </span>
+    </span>
+  );
+}
+
+function EventVisual({ event, aspect }) {
+  const { dateLocale } = useLanguage();
+  const startTime = formatEventTime(event.startTime, dateLocale);
+  const endTime = formatEventTime(event.endTime, dateLocale);
+  const timeStr = startTime ? (endTime ? `${startTime} – ${endTime}` : startTime) : '';
+
+  return (
+    <div className={`home-media-hover relative overflow-hidden bg-church-blue ${aspect}`}>
+      {event.imageUrl ? (
+        <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover" loading="lazy" onError={fallbackImage} />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-navy-100">
+          <CalendarIcon className="h-10 w-10 text-navy-300" aria-hidden="true" />
+        </div>
+      )}
+      <span className="absolute inset-0 bg-gradient-to-t from-navy-950/55 via-transparent to-transparent" aria-hidden="true" />
+      <span className="absolute left-4 top-4"><EventDateBadge event={event} /></span>
+      {timeStr && (
+        <span className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-church-blue shadow-sm">
+          <ClockIcon className="h-3.5 w-3.5 text-church-gold" aria-hidden="true" />
+          {timeStr}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function FeaturedEventCard({ event, t, lang }) {
+  const title = localized(event, 'title', lang);
+  const description = localized(event, 'description', lang);
+  const location = localized(event, 'location', lang);
 
   return (
     <Link
       to={`/events/${event.id}`}
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100
-                 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
+      className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
     >
-      <div className="relative h-48 bg-gray-100 overflow-hidden">
-        {event.imageUrl ? (
-          <img
-            src={event.imageUrl}
-            alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-navy-100">
-            <CalendarIcon className="h-10 w-10 text-navy-300" />
-          </div>
-        )}
-        {dateStr && (
-          <span className="absolute top-3 left-3 bg-church-blue text-white text-xs
-                           font-semibold px-2.5 py-1 rounded-full">
-            {dateStr}
-          </span>
-        )}
-      </div>
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2
-                       group-hover:text-church-blue transition-colors duration-200 mb-2">
-          {event.title}
+      <EventVisual event={{ ...event, title }} aspect="aspect-[16/10]" />
+      <div className="home-card-info flex flex-1 flex-col p-6 sm:p-7">
+        <Label>{t('home.featuredEvent')}</Label>
+        <h3 className="mt-2 font-serif text-2xl font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
+          {title}
         </h3>
-        {event.location && (
-          <p className="mt-auto text-xs text-gray-400 flex items-center gap-1">
-            <MapPinIcon className="h-3 w-3 shrink-0 text-church-gold" />
-            {event.location}
+        {description && <p className="mt-3 line-clamp-3 text-sm leading-7 text-gray-600">{description}</p>}
+        {location && (
+          <p className="mt-auto flex items-center gap-2 pt-5 text-sm text-gray-500">
+            <MapPinIcon className="h-4 w-4 shrink-0 text-church-gold" aria-hidden="true" />
+            <span className="truncate">{location}</span>
+          </p>
+        )}
+        <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-church-blue">
+          {t('home.viewDetails')}
+          <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function CompactEventCard({ event, lang }) {
+  const title = localized(event, 'title', lang);
+  const description = localized(event, 'description', lang);
+  const location = localized(event, 'location', lang);
+
+  return (
+    <Link
+      to={`/events/${event.id}`}
+      className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
+    >
+      <EventVisual event={{ ...event, title }} aspect="aspect-[16/9]" />
+      <div className="home-card-info flex flex-1 flex-col p-5">
+        <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
+          {title}
+        </h3>
+        {description && <p className="mt-2 line-clamp-2 text-sm leading-6 text-gray-600">{description}</p>}
+        {location && (
+          <p className="mt-auto flex items-center gap-1.5 pt-4 text-xs text-gray-500">
+            <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-church-gold" aria-hidden="true" />
+            <span className="truncate">{location}</span>
           </p>
         )}
       </div>
@@ -213,73 +653,389 @@ function EventCard({ event }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   3. SERMON CARD
-   ───────────────────────────────────────────────────────────── */
-function SermonCard({ sermon }) {
+function EventsSection({ events, loading, t }) {
+  const { lang } = useLanguage();
+
+  return (
+    <section className="section-pad bg-church-cream" aria-label="Upcoming events">
+      <div className="page-container">
+        <SectionHeading
+          label={t('home.upcomingEvents')}
+          lang={lang}
+          labelClassName={lang === 'te' ? 'text-base sm:text-lg tracking-[0.14em]' : ''}
+          title={t('home.eventsTitle')}
+          description={t('home.eventsDescription')}
+          action={
+            <Link to="/events" className="btn-outline-navy px-6">
+              {t('common.viewAllEvents')}
+            </Link>
+          }
+        />
+
+        {loading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
+          </div>
+        ) : events.length === 0 ? (
+          <EmptyPanel icon={CalendarIcon} title={t('home.noEvents')} message={t('home.checkBackSoon')} />
+        ) : (
+          <HomeStagger className={`grid gap-6 ${events.length === 1 ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
+            <div className={events.length === 1 ? '' : 'lg:col-span-2'}>
+              <FeaturedEventCard event={events[0]} t={t} lang={lang} />
+            </div>
+            <HomeStagger className={events.length === 1 ? '' : 'lg:col-span-1'} step={0.08}>
+              {events.slice(1, 3).map(event => (
+                <CompactEventCard key={event.id} event={event} lang={lang} />
+              ))}
+            </HomeStagger>
+          </HomeStagger>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SermonVisual({ sermon, aspect, lang }) {
   const [imgErr, setImgErr] = useState(false);
+  const title = localized(sermon, 'title', lang);
   const thumb = sermon.thumbnailUrl || getYoutubeThumbnail(sermon.videoUrl);
-  const ytId  = getYoutubeId(sermon.videoUrl);
+  const hasVideo = Boolean(getYoutubeId(sermon.videoUrl));
+
+  return (
+    <div className={`home-media-hover relative overflow-hidden bg-church-blue ${aspect}`}>
+      {thumb && !imgErr ? (
+        <img
+          src={thumb}
+          alt={title}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        <img src={heroBibleImg} alt="" className="h-full w-full object-cover opacity-60" />
+      )}
+      <span className="absolute inset-0 flex items-center justify-center bg-church-blue/10" aria-hidden="true">
+        <span className="grid h-12 w-12 place-items-center rounded-full border border-white/60 bg-church-blue/80 text-white shadow-lg transition-colors duration-200 group-hover:border-church-gold group-hover:bg-church-gold group-hover:text-church-blue">
+          <PlayIcon className="ml-0.5 h-5 w-5" />
+        </span>
+      </span>
+      {hasVideo && <span className="sr-only">Video available</span>}
+    </div>
+  );
+}
+
+function FeaturedSermonCard({ sermon, t, lang, dateLocale }) {
+  const title = localized(sermon, 'title', lang);
+  const description = localized(sermon, 'description', lang);
+  const speaker = localized(sermon, 'speaker', lang);
+  const dateStr = formatSermonDate(sermon.sermonDate, dateLocale);
 
   return (
     <Link
       to="/sermons"
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100
-                 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
+      className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
     >
-      <div className="relative h-44 bg-church-blue overflow-hidden">
-        {thumb && !imgErr ? (
-          <img
-            src={thumb}
-            alt={sermon.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-            onError={() => setImgErr(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <img
-              src={heroBibleImg}
-              alt=""
-              className="w-full h-full object-cover opacity-60"
-            />
-          </div>
-        )}
-        {/* Play overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-full bg-black/50 group-hover:bg-church-gold
-                          flex items-center justify-center transition-colors duration-200 shadow">
-            <PlayIcon className="h-5 w-5 text-white ml-0.5" />
-          </div>
-        </div>
-      </div>
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2
-                       group-hover:text-church-blue transition-colors duration-200 mb-1.5">
-          {sermon.title}
+      <SermonVisual sermon={sermon} aspect="aspect-[16/9]" lang={lang} />
+      <div className="home-card-info flex flex-1 flex-col p-6 sm:p-7">
+        <Label>{t('home.featuredMessage')}</Label>
+        <h3 className="mt-2 font-serif text-2xl font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
+          {title}
         </h3>
-        <p className="text-xs text-gray-400 mt-auto">
-          {[sermon.speaker, sermon.sermonDate].filter(Boolean).join(' · ')}
+        <p className="mt-3 text-sm text-gray-500">
+          {[speaker, dateStr].filter(Boolean).join(' · ')}
+        </p>
+        {description && <p className="mt-3 line-clamp-2 text-sm leading-7 text-gray-600">{description}</p>}
+        <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-church-blue">
+          {t('home.watchMessage')}
+          <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function CompactSermonCard({ sermon, lang, dateLocale }) {
+  const title = localized(sermon, 'title', lang);
+  const speaker = localized(sermon, 'speaker', lang);
+  const dateStr = formatSermonDate(sermon.sermonDate, dateLocale);
+
+  return (
+    <Link
+      to="/sermons"
+      className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
+    >
+      <SermonVisual sermon={sermon} aspect="aspect-video" lang={lang} />
+      <div className="home-card-info flex flex-1 flex-col p-5">
+        <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue transition-colors duration-200 group-hover:text-church-gold">
+          {title}
+        </h3>
+        <p className="mt-3 text-xs text-gray-500">
+          {[speaker, dateStr].filter(Boolean).join(' · ')}
         </p>
       </div>
     </Link>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   MAIN PAGE COMPONENT
-   ───────────────────────────────────────────────────────────── */
-export default function HomePage() {
-  const { t, dateLocale } = useLanguage();
-  const [hero,       setHero]       = useState(null);
-  const [churchInfo, setChurchInfo] = useState(null);
-  const [events,     setEvents]     = useState([]);
-  const [photos,     setPhotos]     = useState([]);
-  const [sermons,    setSermons]    = useState([]);
-  const [pastors,    setPastors]    = useState([]);
-  const [loading,    setLoading]    = useState(true);
+function SermonsSection({ sermons, loading, t, dateLocale }) {
+  const { lang } = useLanguage();
 
-  /* ── All API calls unchanged ─────────────────────────────── */
+  return (
+    <section className="section-pad bg-white" aria-label="Latest sermons">
+      <div className="page-container">
+        <SectionHeading
+          label={t('home.latestSermons')}
+          lang={lang}
+          title={t('home.sermonsTitle')}
+          description={t('home.sermonsDescription')}
+          action={
+            <Link to="/sermons" className="btn-outline-navy px-6">
+              {t('common.allSermons')}
+            </Link>
+          }
+        />
+
+        {loading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
+          </div>
+        ) : sermons.length === 0 ? (
+          <EmptyPanel icon={PlayIcon} title={t('sermons.noSermons')} message={t('home.sermonsDescription')} />
+        ) : (
+          <HomeStagger className={`grid gap-6 ${sermons.length === 1 ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
+            <div className={sermons.length === 1 ? '' : 'lg:col-span-2'}>
+              <FeaturedSermonCard sermon={sermons[0]} t={t} lang={lang} dateLocale={dateLocale} />
+            </div>
+            <HomeStagger className={sermons.length === 1 ? '' : 'lg:col-span-1'} step={0.08}>
+              {sermons.slice(1, 3).map(sermon => (
+                <CompactSermonCard key={sermon.id} sermon={sermon} lang={lang} dateLocale={dateLocale} />
+              ))}
+            </HomeStagger>
+          </HomeStagger>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PastorPreviewCard({ pastor, t, lang }) {
+  const [imgErr, setImgErr] = useState(false);
+  const bio = localized(pastor, 'bio', lang);
+
+  return (
+    <div className="home-pastor-card flex h-full flex-col items-center rounded-3xl border border-white/10 bg-white/[0.06] p-7 text-center transition-all duration-300 hover:-translate-y-1 hover:border-church-gold/40 hover:bg-white/[0.10] motion-reduce:hover:translate-y-0">
+      <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full border-2 border-church-gold/60 bg-church-gold/15 shadow-avatar">
+        {pastor.photoUrl && !imgErr ? (
+          <img
+            src={pastor.photoUrl}
+            alt={pastor.name}
+            className="home-pastor-photo h-full w-full object-cover"
+            loading="lazy"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <span className="font-serif text-3xl font-bold text-church-gold">{pastor.name?.charAt(0)}</span>
+        )}
+      </div>
+      <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-church-gold">{t('pastors.pastor')}</p>
+      <h3 className="mt-2 font-serif text-xl font-bold text-white">{pastor.name}</h3>
+      {pastor.village && (
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-white/60">
+          <MapPinIcon className="h-3.5 w-3.5 text-church-gold/80" aria-hidden="true" />
+          {pastor.village}
+        </p>
+      )}
+      {bio && <p className="mt-4 line-clamp-2 text-sm leading-6 text-white/65">{bio}</p>}
+      {pastor.contactPublic && pastor.contactNumber && (
+        <a
+          href={`tel:${pastor.contactNumber}`}
+          className="mt-auto inline-flex items-center gap-2 rounded-full bg-church-gold/15 px-4 py-2 text-xs font-semibold text-church-gold transition-colors duration-200 hover:bg-church-gold/25"
+        >
+          <PhoneIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          {t('pastors.call')}
+        </a>
+      )}
+    </div>
+  );
+}
+
+function PastorsSection({ pastors, t }) {
+  const { lang } = useLanguage();
+
+  return (
+    <section className="section-pad bg-church-blue" aria-label="Our pastors">
+      <div className="page-container">
+        <SectionHeading
+          light
+          label={t('home.ourPastors')}
+          lang={lang}
+          title={t('home.pastorsTitle')}
+          description={t('home.pastorsDescription')}
+          action={
+            <Link to="/pastors" className="btn-outline-light px-6">
+              {t('common.meetAllPastors')}
+            </Link>
+          }
+        />
+
+        {pastors.length > 0 ? (
+          <HomeStagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {pastors.map(pastor => (
+              <div key={pastor.id} className="h-full">
+                <PastorPreviewCard pastor={pastor} t={t} lang={lang} />
+              </div>
+            ))}
+          </HomeStagger>
+        ) : (
+          <div className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-white/[0.06] px-6 py-12 text-center">
+            <span className="font-serif text-4xl text-church-gold" aria-hidden="true">+</span>
+            <h3 className="mt-4 font-serif text-xl font-bold text-white">{t('home.meetShepherds')}</h3>
+            <p className="mt-2 text-sm leading-7 text-white/65">{t('home.pastorsDescription')}</p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function GalleryTile({ photo }) {
+  return (
+    <Link
+      to="/photos"
+      className="home-media-hover group relative overflow-hidden rounded-2xl bg-white shadow-card"
+    >
+      <img
+        src={photo.imageUrl}
+        alt={photo.title || 'Church photo'}
+        className="h-full w-full object-cover"
+        loading="lazy"
+        onError={fallbackImage}
+      />
+      <span className="absolute inset-0 bg-navy-950/0 transition-colors duration-300 group-hover:bg-navy-950/20" aria-hidden="true" />
+    </Link>
+  );
+}
+
+function GallerySection({ photos, loading, t }) {
+  const { lang } = useLanguage();
+  const gallery = photos.slice(0, 5);
+
+  return (
+    <section className="section-pad bg-church-cream" aria-label="Church gallery">
+      <div className="page-container">
+        <SectionHeading
+          label={t('nav.gallery')}
+          lang={lang}
+          title={t('home.galleryTitle')}
+          description={t('home.galleryDescription')}
+          action={
+            <Link to="/photos" className="btn-outline-navy px-6">
+              {t('common.seeAllPhotos')}
+            </Link>
+          }
+        />
+
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className={`animate-pulse rounded-2xl bg-gray-200 ${i === 1 ? 'col-span-2 row-span-2 min-h-[240px]' : 'min-h-[120px]'}`} />
+            ))}
+          </div>
+        ) : gallery.length === 0 ? (
+          <HomeAnim>
+            <EmptyPanel
+              icon={PhotoIcon}
+              title={t('home.galleryEmptyTitle')}
+              message={t('home.galleryEmptyMessage')}
+              action={
+                <Link to="/photos" className="btn-outline-navy px-6">
+                  {t('common.seeAllPhotos')}
+                </Link>
+              }
+            />
+          </HomeAnim>
+        ) : (
+          <HomeStagger
+            className="home-gallery grid auto-rows-[140px] grid-cols-2 gap-3 sm:auto-rows-[170px] sm:grid-cols-4"
+            step={0.12}
+            duration={0.7}
+          >
+            <div className="col-span-2 row-span-2"><GalleryTile photo={gallery[0]} /></div>
+            {gallery.slice(1).map((photo, index) => (
+              <div key={photo.id || `${photo.imageUrl}-${index}`} className={index === 2 ? 'col-span-2' : ''}>
+                <GalleryTile photo={photo} />
+              </div>
+            ))}
+          </HomeStagger>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PrayerSection({ t }) {
+  const { lang } = useLanguage();
+
+  return (
+    <section
+      className="relative overflow-hidden py-20 sm:py-24"
+      style={{
+        backgroundImage: `url(${prayerBgImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+      aria-label="Prayer request"
+    >
+      <div className="absolute inset-0 z-0 bg-[#08162b]/80" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+        <div className="absolute left-1/2 top-10 h-64 w-64 -translate-x-1/2 rounded-full bg-church-gold/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-church-gold/[0.07] blur-3xl" />
+      </div>
+
+      <div className="page-container relative z-10">
+        <HomeAnim className="mx-auto max-w-2xl text-center">
+          <div className="home-prayer-dove mx-auto grid h-16 w-16 place-items-center overflow-hidden rounded-full border border-church-gold/50 bg-church-gold/10">
+            <img src={doveImg} alt="" aria-hidden="true" className="h-11 w-11 object-contain" />
+          </div>
+          <Label light className="mt-5">
+            <AnimatedText text={t('home.prayerRequests')} lang={lang} inline stagger={lang === 'te' ? 0.065 : 0.055} />
+          </Label>
+          <h2 className="mt-3 font-serif text-3xl font-bold leading-tight text-white sm:text-4xl">
+            {t('home.prayerTitle')}
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-white/75">
+            {t('home.prayerDescription')}
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link to="/prayer" className="btn-gold h-11 w-full px-7 sm:w-auto">
+              {t('common.submitPrayer')}
+            </Link>
+            <Link to="/offerings" className="btn-outline-light w-full px-7 sm:w-auto">
+              {t('common.giveOffering')}
+            </Link>
+          </div>
+        </HomeAnim>
+      </div>
+    </section>
+  );
+}
+
+export default function HomePage() {
+  const { t, lang, dateLocale } = useLanguage();
+  const [hero, setHero] = useState(null);
+  const [churchInfo, setChurchInfo] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [sermons, setSermons] = useState([]);
+  const [pastors, setPastors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    document.body.classList.add('home-page-active');
+    return () => document.body.classList.remove('home-page-active');
+  }, []);
+
   useEffect(() => {
     Promise.allSettled([
       churchService.getHero(),
@@ -289,460 +1045,25 @@ export default function HomePage() {
       sermonService.list(0, 3),
       pastorService.list(),
     ]).then(([heroR, infoR, evR, phR, serR, pasR]) => {
-      if (heroR.status   === 'fulfilled') setHero(heroR.value.data.data);
-      if (infoR.status   === 'fulfilled') setChurchInfo(infoR.value.data.data);
-      if (evR.status     === 'fulfilled') setEvents(evR.value.data.data?.slice(0, 4)           || []);
-      if (phR.status     === 'fulfilled') setPhotos(phR.value.data.data                         || []);
-      if (serR.status    === 'fulfilled') setSermons(serR.value.data.data?.content?.slice(0, 3) || []);
-      if (pasR.status    === 'fulfilled') setPastors(pasR.value.data.data?.slice(0, 3)          || []);
+      if (heroR.status === 'fulfilled') setHero(heroR.value.data.data);
+      if (infoR.status === 'fulfilled') setChurchInfo(infoR.value.data.data);
+      if (evR.status === 'fulfilled') setEvents(evR.value.data.data?.slice(0, 4) || []);
+      if (phR.status === 'fulfilled') setPhotos(phR.value.data.data || []);
+      if (serR.status === 'fulfilled') setSermons(serR.value.data.data?.content?.slice(0, 3) || []);
+      if (pasR.status === 'fulfilled') setPastors(pasR.value.data.data?.slice(0, 3) || []);
     }).finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="bg-church-cream">
-
-      {/* ══════════════════════════════════════════════════════
-          1. HERO
-          ════════════════════════════════════════════════════ */}
+    <div className="home-redesign bg-church-cream">
+      <style>{HOME_STYLES}</style>
       <HeroSection hero={hero} />
-
-      {/* ══════════════════════════════════════════════════════
-          2. UPCOMING EVENTS
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 bg-church-cream" aria-label="Upcoming events">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          {/* Two-column header */}
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
-            <div>
-              <Reveal>
-                <Label>{t('home.upcomingEvents')}</Label>
-                <h2 className="text-3xl md:text-4xl font-bold text-church-blue leading-tight"
-                    style={{ fontFamily: 'Lora, Georgia, serif' }}>
-                  {t('home.joinInWorship')}
-                </h2>
-                <p className="text-gray-500 mt-2 max-w-md text-sm">
-                  {t('home.comeTogether')}
-                </p>
-              </Reveal>
-            </div>
-            <Reveal>
-              <Link
-                to="/events"
-                className="shrink-0 inline-flex items-center gap-2 border border-church-blue
-                           text-church-blue hover:bg-church-blue hover:text-white
-                           text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors duration-200"
-              >
-                {t('common.viewAllEvents')} <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-            </Reveal>
-          </div>
-
-          {/* Cards */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[1,2,3,4].map(i => <CardSkeleton key={i} />)}
-            </div>
-          ) : events.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <CalendarIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">{t('home.noEvents')}</p>
-              <p className="text-sm mt-1">{t('home.checkBackSoon')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {events.map((e, i) => (
-                <StaggerItem key={e.id}>
-                  <EventCard event={e} />
-                </StaggerItem>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════
-          3. LATEST SERMONS
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 bg-church-light" aria-label="Latest sermons">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
-            <div>
-              <Reveal>
-                <Label>{t('home.latestSermons')}</Label>
-                <h2 className="text-3xl md:text-4xl font-bold text-church-blue leading-tight"
-                    style={{ fontFamily: 'Lora, Georgia, serif' }}>
-                  {t('home.watchListen')}
-                </h2>
-                <p className="text-gray-500 mt-2 max-w-md text-sm">
-                  {t('home.encouragedWord')}
-                </p>
-              </Reveal>
-            </div>
-            <Reveal>
-              <Link
-                to="/sermons"
-                className="shrink-0 inline-flex items-center gap-2 border border-church-blue
-                           text-church-blue hover:bg-church-blue hover:text-white
-                           text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors duration-200"
-              >
-                {t('common.allSermons')} <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-            </Reveal>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {[1,2,3].map(i => <CardSkeleton key={i} />)}
-            </div>
-          ) : sermons.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <PlayIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">{t('sermons.noSermons')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {sermons.map((s, i) => (
-                <StaggerItem key={s.id}>
-                  <SermonCard sermon={s} />
-                </StaggerItem>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════
-          4. ABOUT GDM CHURCH  — image left, text right
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 bg-church-cream" aria-label="About GDM Church">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Reveal>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-
-              {/* Image */}
-              <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-[4/3]">
-                <img
-                  src={heroBibleImg}
-                  alt="Open Bible in a garden"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                {/* Gold accent bar */}
-                <div className="absolute left-0 top-8 bottom-8 w-1 bg-church-gold rounded-r-full" />
-              </div>
-
-              {/* Text */}
-              <div>
-                <Label>{t('home.aboutChurch')}</Label>
-                <h2 className="text-3xl md:text-4xl font-bold text-church-blue leading-tight mb-5"
-                    style={{ fontFamily: 'Lora, Georgia, serif' }}>
-                  {t('home.unitedFaith')}
-                </h2>
-
-                {/* Real description from API when available, fallback text */}
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  {churchInfo?.description ||
-                    `${CHURCH_NAME} is a vibrant, welcoming community of believers
-                     dedicated to worship, fellowship and service in the heart of
-                     Koyyalagudem, Andhra Pradesh.`}
-                </p>
-
-                {churchInfo?.mission && (
-                  <div className="border-l-4 border-church-gold pl-4 mb-6">
-                    <p className="text-sm font-semibold text-church-blue mb-1 uppercase tracking-wide">
-                      {t('about.ourMission')}
-                    </p>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      {churchInfo.mission}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-3 mt-6">
-                  <Link
-                    to="/about"
-                    className="inline-flex items-center gap-2 bg-church-blue hover:bg-navy-900
-                               text-white text-sm font-semibold px-6 py-3 rounded-lg
-                               transition-colors duration-200"
-                  >
-                    {t('common.learnMore')} <ArrowRightIcon className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    to="/contact"
-                    className="inline-flex items-center gap-2 border border-church-blue
-                               text-church-blue hover:bg-church-blue hover:text-white
-                               text-sm font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
-                  >
-                    {t('common.getInTouch')}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════
-          5. EVENT PHOTOS GALLERY PREVIEW
-          ════════════════════════════════════════════════════ */}
-      {(loading || photos.length > 0) && (
-        <section className="py-20 bg-church-light" aria-label="Event photos">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
-              <Reveal>
-                <Label>{t('nav.gallery')}</Label>
-                <h2 className="text-3xl font-bold text-church-blue"
-                    style={{ fontFamily: 'Lora, Georgia, serif' }}>
-                  {t('home.lifeAtChurch')}
-                </h2>
-              </Reveal>
-              <Reveal>
-                <Link
-                  to="/photos"
-                  className="shrink-0 inline-flex items-center gap-2 border border-church-blue
-                             text-church-blue hover:bg-church-blue hover:text-white
-                             text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors duration-200"
-                >
-                  {t('common.seeAllPhotos')} <ArrowRightIcon className="h-4 w-4" />
-                </Link>
-              </Reveal>
-            </div>
-
-            {loading ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="aspect-square rounded-xl bg-gray-200 animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {photos.slice(0, 12).map(p => (
-                  <Link
-                    key={p.id}
-                    to="/photos"
-                    className="aspect-square overflow-hidden rounded-xl bg-gray-100 group"
-                  >
-                    <img
-                      src={p.imageUrl}
-                      alt={p.title || 'Church photo'}
-                      className="w-full h-full object-cover group-hover:scale-110
-                                 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════
-          6. OUR PASTORS — dark navy band
-          ════════════════════════════════════════════════════ */}
-      {pastors.length > 0 && (
-        <section className="py-20 bg-church-blue" aria-label="Our pastors">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
-              <Reveal>
-                <p className="text-church-gold text-xs font-bold uppercase tracking-[0.18em] mb-3">
-                  {t('home.ourPastors')}
-                </p>
-                <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight"
-                    style={{ fontFamily: 'Lora, Georgia, serif' }}>
-                  {t('home.meetShepherds')}
-                </h2>
-              </Reveal>
-              <Reveal>
-                <Link
-                  to="/pastors"
-                  className="shrink-0 inline-flex items-center gap-2 border border-white/30
-                             text-white hover:bg-white/10 text-sm font-semibold px-5 py-2.5
-                             rounded-lg transition-colors duration-200"
-                >
-                  {t('common.meetAllPastors')} <ArrowRightIcon className="h-4 w-4" />
-                </Link>
-              </Reveal>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pastors.map((p, i) => (
-                <StaggerItem key={p.id}>
-                  <div className="bg-white/8 border border-white/12 rounded-2xl p-6 text-center
-                                  hover:bg-white/14 transition-colors duration-200">
-                    {p.photoUrl ? (
-                      <img
-                        src={p.photoUrl}
-                        alt={p.name}
-                        className="w-24 h-24 rounded-full object-cover mx-auto mb-4
-                                   ring-4 ring-church-gold/40 shadow-md"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-church-gold/20 border-2
-                                      border-church-gold/40 flex items-center justify-center
-                                      text-church-gold text-3xl font-bold mx-auto mb-4">
-                        {p.name.charAt(0)}
-                      </div>
-                    )}
-                    <p className="text-church-gold text-xs font-semibold uppercase tracking-widest mb-1">
-                      {t('pastors.pastor')}
-                    </p>
-                    <h3 className="font-bold text-white text-base leading-snug"
-                        style={{ fontFamily: 'Lora, Georgia, serif' }}>
-                      {p.name}
-                    </h3>
-                    {p.village && (
-                      <p className="text-white/50 text-sm mt-1 flex items-center justify-center gap-1">
-                        <MapPinIcon className="h-3.5 w-3.5 text-church-gold/70 shrink-0" />
-                        {p.village}
-                      </p>
-                    )}
-                    {p.contactPublic && p.contactNumber && (
-                      <a
-                        href={`tel:${p.contactNumber}`}
-                        className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full
-                                   bg-church-gold/15 text-church-gold text-xs font-semibold
-                                   hover:bg-church-gold/25 transition-colors duration-200"
-                      >
-                        <PhoneIcon className="h-3 w-3" />
-                        {t('pastors.call')}
-                      </a>
-                    )}
-                  </div>
-                </StaggerItem>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════
-          7. PRAYER BANNER — full-width photographic
-          ════════════════════════════════════════════════════ */}
-      <section
-        className="relative py-24 overflow-hidden"
-        aria-label="Prayer request"
-      >
-        {/* Background photo */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${prayerBgImg})` }}
-          aria-hidden="true"
-        />
-        {/* Dark overlay */}
-        <div
-          className="absolute inset-0"
-          style={{ background: 'rgba(10,20,40,0.72)' }}
-          aria-hidden="true"
-        />
-
-        {/* Content */}
-        <Reveal>
-          <div className="relative z-10 max-w-3xl mx-auto px-4 text-center text-white">
-            {/* Dove above heading */}
-            <div className="flex justify-center mb-4">
-              <img
-                src={doveImg}
-                alt=""
-                aria-hidden="true"
-                className="w-20 h-auto object-contain"
-                style={{ filter: 'brightness(10) opacity(0.75)' }}
-              />
-            </div>
-            <Label>{t('home.prayerRequests')}</Label>
-            <h2
-              className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight"
-              style={{ fontFamily: 'Lora, Georgia, serif' }}
-            >
-              {t('home.letUsPray')}
-            </h2>
-            <p className="text-white/75 text-lg mb-8 leading-relaxed max-w-xl mx-auto">
-              {t('home.shareNeeds')}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/prayer"
-                className="inline-flex items-center justify-center gap-2
-                           bg-church-gold hover:bg-[#b89a3a] text-white font-semibold
-                           text-sm px-8 py-3.5 rounded-lg shadow-lg transition-colors duration-200"
-              >
-                {t('common.submitPrayer')}
-              </Link>
-              <Link
-                to="/offerings"
-                className="inline-flex items-center justify-center gap-2
-                           border-2 border-white/40 hover:border-white
-                           text-white font-semibold text-sm px-8 py-3.5 rounded-lg
-                           transition-colors duration-200 hover:bg-white/10"
-              >
-                {t('common.giveOffering')}
-              </Link>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════
-          8. CONTACT / FIND US — compact navy strip
-          ════════════════════════════════════════════════════ */}
-      <section className="py-14 bg-navy-950" aria-label="Find us">
-        <Reveal>
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-
-              {/* Left — church identity */}
-              <div>
-                <p className="text-church-gold text-xs font-bold uppercase tracking-[0.18em] mb-2">
-                  ✝ {CHURCH_NAME}
-                </p>
-                <a
-                  href={
-                    churchInfo?.mapUrl ||
-                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      churchInfo?.address || 'GDM Church, Chopparamma Gudem, Koyyalagudem, West Godavari 534312'
-                    )}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/60 hover:text-white/90 text-sm leading-relaxed
-                             max-w-xs underline underline-offset-2 transition-colors duration-200"
-                >
-                  {churchInfo?.address ||
-                    'Chopparamma Gudem, Koyyalagudem, West Godavari — 534312'}
-                </a>
-              </div>
-
-              {/* Centre — phone */}
-              {churchInfo?.phone && (
-                <a
-                  href={`tel:${churchInfo.phone}`}
-                  className="flex items-center gap-2 text-white/70 hover:text-white
-                             transition-colors duration-200 text-sm"
-                >
-                  <PhoneIcon className="h-4 w-4 text-church-gold" />
-                  {churchInfo.phone}
-                </a>
-              )}
-
-              {/* Right — CTA */}
-              <Link
-                to="/contact"
-                className="shrink-0 inline-flex items-center gap-2
-                           bg-church-gold hover:bg-[#b89a3a] text-white font-semibold
-                           text-sm px-6 py-3 rounded-lg transition-colors duration-200"
-              >
-                {t('common.getInTouch')} <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
+      <WelcomeSection churchInfo={churchInfo} t={t} lang={lang} />
+      <EventsSection events={events} loading={loading} t={t} />
+      <SermonsSection sermons={sermons} loading={loading} t={t} dateLocale={dateLocale} />
+      <PastorsSection pastors={pastors} t={t} />
+      <GallerySection photos={photos} loading={loading} t={t} />
+      <PrayerSection t={t} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 spring:
   application:
     name: gdm-church-backend
@@ -5,7 +6,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/gdm_church?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:your-database-password}
+    password: "${DB_PASSWORD:manoj@123#}"
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -35,7 +36,7 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:your-jwt-secret-minimum-32-characters}
+    secret: ${JWT_SECRET:0a71766cfd2c40465bdffcb7ce10821a6ca71f6d986d9b77f15915ef46935dce}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
   cors:
@@ -43,11 +44,8 @@ app:
 
   admin:
     seed-email: ${ADMIN_SEED_EMAIL:admin@gdmchurch.org}
-    seed-password: ${ADMIN_SEED_PASSWORD:your-admin-password}
+    seed-password: ${ADMIN_SEED_PASSWORD:REPLACE_WITH_A_PRIVATE_ADMIN_PASSWORD}
 
-# -------------------------------------------------------------------
-# Cloudinary
-# -------------------------------------------------------------------
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:your-cloudinary-cloud-name}
   api-key: ${CLOUDINARY_API_KEY:your-cloudinary-api-key}
