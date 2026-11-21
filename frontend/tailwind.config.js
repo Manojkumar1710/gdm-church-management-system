@@ -41,6 +41,7 @@ export default {
         sans:   ['Inter', 'Noto Sans Telugu', 'system-ui', 'sans-serif'],
         serif:  ['Lora', 'Georgia', 'Cambria', 'serif'],
         telugu: ['Noto Sans Telugu', 'sans-serif'],
+        cinzel: ['"Cinzel Decorative"', 'Cinzel', 'Georgia', 'serif'],
       },
       borderRadius: {
         // Soft shape scale

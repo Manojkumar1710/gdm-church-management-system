@@ -41,6 +41,7 @@ export default function Footer() {
             <div>
               <p
                 className="mb-4 flex items-center gap-2.5 font-serif text-xl font-bold text-white"
+                style={{ fontFamily: '"Cinzel Decorative", Cinzel, Georgia, serif' }}
               >
                 <span className="text-2xl text-church-gold">✝</span>
                 {CHURCH_NAME}

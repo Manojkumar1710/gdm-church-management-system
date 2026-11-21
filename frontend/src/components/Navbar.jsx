@@ -102,12 +102,13 @@ export default function Navbar() {
               <span className="flex flex-col leading-tight">
                 <span
                   className="text-white/70 text-[9px] font-semibold tracking-[0.18em] uppercase"
+                  style={{ fontFamily: '"Cinzel Decorative", Cinzel, Georgia, serif' }}
                 >
                   {CHURCH_NAME_LINE1}
                 </span>
                 <span
                   className="text-white font-bold text-base tracking-wide"
-                  style={{ fontFamily: 'Lora, Georgia, serif' }}
+                  style={{ fontFamily: '"Cinzel Decorative", Cinzel, Georgia, serif' }}
                 >
                   {CHURCH_NAME_LINE2}
                 </span>
@@ -186,10 +187,12 @@ export default function Navbar() {
                 >
                   <span className="text-church-gold">✝</span>
                   <span className="flex flex-col leading-tight">
-                    <span className="text-white/60 text-[8px] font-semibold tracking-[0.16em] uppercase">
+                    <span className="text-white/60 text-[8px] font-semibold tracking-[0.16em] uppercase"
+                          style={{ fontFamily: '"Cinzel Decorative", Cinzel, Georgia, serif' }}>
                       {CHURCH_NAME_LINE1}
                     </span>
-                    <span className="text-white font-bold text-sm">
+                    <span className="text-white font-bold text-sm"
+                          style={{ fontFamily: '"Cinzel Decorative", Cinzel, Georgia, serif' }}>
                       {CHURCH_NAME_LINE2}
                     </span>
                   </span>
