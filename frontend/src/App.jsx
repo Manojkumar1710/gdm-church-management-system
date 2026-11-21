@@ -23,6 +23,7 @@ import SongList from './pages/SongList';
 import SongDetail from './pages/SongDetail';
 import SermonDetailPage from './pages/SermonDetailPage';
 import YoutubeDetailPage from './pages/YoutubeDetailPage';
+import MemoriesPage from './pages/MemoriesPage';
 
 // Admin
 import LoginPage from './admin/LoginPage';
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/events/:id" element={<EventDetailPage />} />
             <Route path="/photos" element={<PhotosPage />} />
             <Route path="/pastors" element={<PastorsPage />} />
+            <Route path="/memories" element={<MemoriesPage />} />
             <Route path="/schedule" element={<PastorsPage />} />
             <Route path="/sermons" element={<SermonsPage />} />
             <Route path="/youtube" element={<SermonsPage />} />

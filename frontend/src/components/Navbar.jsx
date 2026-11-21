@@ -12,11 +12,10 @@ const NAV_KEYS = [
   { key: 'home',        to: '/',              end: true },
   { key: 'about',       to: '/about' },
   { key: 'events',      to: '/events' },
-  { key: 'photos',      to: '/photos' },
+  { key: 'memories',    to: '/memories' },
   { key: 'pastors',     to: '/pastors' },
   { key: 'sermons',     to: '/sermons' },
   { key: 'songs',        to: '/songs' },
-  { key: 'gallery',     to: '/gallery' },
   { key: 'sundaySchool',to: '/sunday-school' },
   { key: 'contact',     to: '/contact' },
 ];

@@ -249,7 +249,7 @@ export default function PastorsPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: EASE }}
           >
-            <div className="mb-5 grid h-16 w-16 place-items-center rounded-full bg-church-gold/15 shadow-[0_0_0_10px_rgba(201,168,76,0.08)]">
+            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-church-gold/15 shadow-[0_0_0_10px_rgba(201,168,76,0.08)]">
               <img src={doveImg} alt="" className="h-10 w-10 object-contain" aria-hidden="true"
                    style={{ filter: 'sepia(1) saturate(3) hue-rotate(5deg) brightness(0.85)' }} />
             </div>

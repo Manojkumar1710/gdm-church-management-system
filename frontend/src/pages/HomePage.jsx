@@ -906,7 +906,7 @@ function GallerySection({ photos, loading, t }) {
           title={t('home.galleryTitle')}
           description={t('home.galleryDescription')}
           action={
-            <Link to="/photos" className="btn-outline-navy px-6">
+            <Link to="/memories" className="btn-outline-navy px-6">
               {t('common.seeAllPhotos')}
             </Link>
           }
@@ -964,7 +964,7 @@ function GallerySection({ photos, loading, t }) {
               {gallery.map((photo, index) => (
                 <Link
                   key={photo.id || index}
-                  to="/photos"
+                  to="/memories"
                   data-gallery-card=""
                   className="group relative h-56 w-[calc(100%-2rem)] shrink-0 overflow-hidden rounded-2xl bg-white shadow-card sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)] xl:w-[calc(25%-12px)]"
                   style={{ scrollSnapAlign: 'start' }}
