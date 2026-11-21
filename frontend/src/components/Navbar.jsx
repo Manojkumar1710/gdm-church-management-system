@@ -115,8 +115,8 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* ── Desktop links + language switcher (collapse at xl) ── */}
-            <div className="hidden xl:flex items-center gap-0.5">
+            {/* ── Desktop links + language switcher (collapse at lg) ── */}
+            <div className="hidden lg:flex items-center gap-0.5">
               {NAV_KEYS.map(({ key, to, end }) => (
                 <DesktopLink key={to} label={t(`nav.${key}`)} to={to} end={end} />
               ))}
@@ -133,9 +133,9 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* ── Hamburger (visible below xl) ── */}
+            {/* ── Hamburger (visible below lg) ── */}
             <button
-              className="xl:hidden p-2 rounded-lg text-white/80 hover:text-white
+              className="lg:hidden p-2 rounded-lg text-white/80 hover:text-white
                          hover:bg-white/10 transition-colors
                          focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               onClick={() => setOpen(v => !v)}
@@ -158,7 +158,7 @@ export default function Navbar() {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 z-40 bg-black/50 xl:hidden"
+              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -170,7 +170,7 @@ export default function Navbar() {
             {/* Slide-in panel from the right */}
             <motion.aside
               id="mobile-menu"
-              className="fixed top-0 right-0 bottom-0 z-50 w-72 max-w-[85vw] xl:hidden
+              className="fixed top-0 right-0 bottom-0 z-50 w-72 max-w-[85vw] lg:hidden
                          flex flex-col bg-navy-950 shadow-2xl overflow-y-auto overscroll-contain"
               initial={{ x: reduced ? 0 : '100%', opacity: reduced ? 0 : 1 }}
               animate={{ x: 0,    opacity: 1 }}

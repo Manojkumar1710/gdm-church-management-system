@@ -346,7 +346,7 @@ export default function SermonsPage() {
           </div>
         ) : (
           <>
-            <Stagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" staggerDelay={0.07}>
+            <Stagger key={tab} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" staggerDelay={0.07}>
               {visible.map(item => (
                 <StaggerItem key={item.id} className="h-full">
                   {tab === 'sermons' ? (

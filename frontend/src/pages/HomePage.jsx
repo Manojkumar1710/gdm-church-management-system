@@ -71,7 +71,9 @@ const HOME_STYLES = `
 }
 .home-redesign .home-hero-title-line {
   display: block;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .home-redesign .home-hero-description {
   animation: homeRiseIn 0.8s 0.7s var(--home-ease) both;
@@ -423,8 +425,8 @@ function HeroSection({ hero }) {
           <h1
             className="home-hero-title mb-5 max-w-none font-serif font-bold tracking-tight text-white"
             style={{
-              fontSize: isTelugu ? 'clamp(1.45rem, 3.2vw, 2.48rem)' : 'clamp(1.92rem, 4.35vw, 3.42rem)',
-              lineHeight: isTelugu ? 1.28 : 1.12,
+              fontSize: isTelugu ? 'clamp(1.25rem, 3.2vw, 2.48rem)' : 'clamp(1.35rem, 4.35vw, 3.42rem)',
+              lineHeight: isTelugu ? 1.35 : 1.18,
               letterSpacing: isTelugu ? '0' : undefined,
             }}
             aria-label={lines.join(' ')}
@@ -679,15 +681,17 @@ function EventsSection({ events, loading, t }) {
         ) : events.length === 0 ? (
           <EmptyPanel icon={CalendarIcon} title={t('home.noEvents')} message={t('home.checkBackSoon')} />
         ) : (
-          <HomeStagger className={`grid gap-6 ${events.length === 1 ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
-            <div className={events.length === 1 ? '' : 'lg:col-span-2'}>
+          <HomeStagger className={`grid gap-6 ${events.length === 1 ? 'lg:grid-cols-1' : events.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
+            <div className={events.length >= 3 ? 'lg:col-span-2' : ''}>
               <FeaturedEventCard event={events[0]} t={t} lang={lang} />
             </div>
-            <HomeStagger className={events.length === 1 ? '' : 'lg:col-span-1'} step={0.08}>
-              {events.slice(1, 3).map(event => (
-                <CompactEventCard key={event.id} event={event} lang={lang} />
-              ))}
-            </HomeStagger>
+            {events.length >= 2 && (
+              <HomeStagger className={events.length >= 3 ? 'lg:col-span-1 flex flex-col gap-6' : ''} step={0.08}>
+                {events.slice(1, 3).map(event => (
+                  <CompactEventCard key={event.id} event={event} lang={lang} />
+                ))}
+              </HomeStagger>
+            )}
           </HomeStagger>
         )}
       </div>
@@ -956,16 +960,48 @@ function GallerySection({ photos, loading, t }) {
           </HomeAnim>
         ) : (
           <HomeStagger
-            className="home-gallery grid auto-rows-[140px] grid-cols-2 gap-3 sm:auto-rows-[170px] sm:grid-cols-4"
+            className="home-gallery grid grid-cols-2 gap-3 sm:grid-cols-4"
+            style={{ gridAutoRows: gallery.length > 1 ? undefined : '240px' }}
             step={0.12}
             duration={0.7}
           >
-            <div className="col-span-2 row-span-2"><GalleryTile photo={gallery[0]} /></div>
-            {gallery.slice(1).map((photo, index) => (
-              <div key={photo.id || `${photo.imageUrl}-${index}`} className={index === 2 ? 'col-span-2' : ''}>
-                <GalleryTile photo={photo} />
+            {/* Always show up to 5 photos; layout adapts to count */}
+            {gallery.length === 1 && (
+              <div className="col-span-2 sm:col-span-4" style={{ height: '300px' }}>
+                <GalleryTile photo={gallery[0]} />
               </div>
-            ))}
+            )}
+            {gallery.length >= 2 && gallery.length < 4 && (
+              <>
+                {gallery.map((photo, index) => (
+                  <div key={photo.id || index} className="col-span-2" style={{ height: '240px' }}>
+                    <GalleryTile photo={photo} />
+                  </div>
+                ))}
+              </>
+            )}
+            {gallery.length >= 4 && (
+              <>
+                <div className="col-span-2 row-span-2" style={{ height: '310px' }}>
+                  <GalleryTile photo={gallery[0]} />
+                </div>
+                {gallery.slice(1, 3).map((photo, index) => (
+                  <div key={photo.id || `g${index}`} style={{ height: '150px' }}>
+                    <GalleryTile photo={photo} />
+                  </div>
+                ))}
+                {gallery.length >= 5 && (
+                  <div className="col-span-2" style={{ height: '150px' }}>
+                    <GalleryTile photo={gallery[4]} />
+                  </div>
+                )}
+                {gallery.length === 4 && (
+                  <div className="col-span-2" style={{ height: '150px' }}>
+                    <GalleryTile photo={gallery[3]} />
+                  </div>
+                )}
+              </>
+            )}
           </HomeStagger>
         )}
       </div>

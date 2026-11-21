@@ -5,7 +5,7 @@ import { PastorCardSkeleton } from '../components/Skeleton';
 import Reveal from '../components/motion/Reveal';
 import Stagger, { StaggerItem } from '../components/motion/Stagger';
 import AnimatedText from '../components/motion/AnimatedText';
-import { MapPinIcon, PhoneIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ClockIcon, MapPinIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useLanguage } from '../context/LanguageContext';
 import { localized } from '../utils/localized';
@@ -206,7 +206,8 @@ function EmptyStateSection({ t }) {
   return (
     <div className="mx-auto max-w-xl rounded-[1.75rem] border border-church-gold/20 bg-white px-8 py-14 text-center shadow-[0_12px_32px_rgba(23,52,81,0.08)]">
       <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full bg-church-gold/10">
-        <img src={doveImg} alt="" className="h-12 w-12 object-contain opacity-80" aria-hidden="true" />
+        <img src={doveImg} alt="" className="h-12 w-12 object-contain" aria-hidden="true"
+               style={{ filter: 'sepia(1) saturate(3) hue-rotate(5deg) brightness(0.85)' }} />
       </div>
       <h3 className="font-serif text-xl font-bold text-[#173451]">{t('pastors.noPastors')}</h3>
       <p className="mt-3 text-sm leading-7 text-[#334155]">
@@ -217,16 +218,23 @@ function EmptyStateSection({ t }) {
 }
 
 export default function PastorsPage() {
-  const { t, lang } = useLanguage();
+  const { t, lang, dateLocale } = useLanguage();
   const reduced = useReducedMotion();
   const [pastors, setPastors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [schedule, setSchedule] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
 
   useEffect(() => {
     pastorService.list()
       .then(res => setPastors(res.data.data || []))
       .catch(() => setPastors([]))
       .finally(() => setLoading(false));
+
+    pastorService.getSchedule()
+      .then(res => setSchedule(res.data.data || []))
+      .catch(() => setSchedule([]))
+      .finally(() => setScheduleLoading(false));
   }, []);
 
   return (
@@ -241,8 +249,9 @@ export default function PastorsPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: EASE }}
           >
-            <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-full bg-church-gold/15 shadow-[0_0_0_10px_rgba(201,168,76,0.08)]">
-              <img src={doveImg} alt="" className="h-10 w-10 object-contain" aria-hidden="true" />
+            <div className="mb-5 grid h-16 w-16 place-items-center rounded-full bg-church-gold/15 shadow-[0_0_0_10px_rgba(201,168,76,0.08)]">
+              <img src={doveImg} alt="" className="h-10 w-10 object-contain" aria-hidden="true"
+                   style={{ filter: 'sepia(1) saturate(3) hue-rotate(5deg) brightness(0.85)' }} />
             </div>
           </motion.div>
 
@@ -307,6 +316,92 @@ export default function PastorsPage() {
           )}
         </div>
       </section>
+
+      {/* ── View Schedule ─────────────────────────────────────────── */}
+      {(scheduleLoading || schedule.length > 0) && (
+        <section className="px-4 pb-14 pt-6 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <Reveal>
+              <div className="mb-6 flex items-center gap-3">
+                <CalendarIcon className="h-5 w-5 text-church-gold shrink-0" aria-hidden="true" />
+                <h2 className="font-serif text-xl font-bold text-[#173451] sm:text-2xl">
+                  {t('pastors.upcomingSchedule') || 'Upcoming Schedule'}
+                </h2>
+              </div>
+            </Reveal>
+
+            {scheduleLoading ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+                ))}
+              </div>
+            ) : (
+              <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" staggerDelay={0.08}>
+                {schedule.slice(0, 9).map(item => {
+                  const date = item.serviceDate
+                    ? new Date(`${item.serviceDate}T00:00:00`).toLocaleDateString(dateLocale, {
+                        weekday: 'short', day: 'numeric', month: 'short',
+                      })
+                    : '';
+                  const timeStr = item.startTime
+                    ? item.endTime
+                      ? `${item.startTime} – ${item.endTime}`
+                      : item.startTime
+                    : '';
+
+                  return (
+                    <StaggerItem key={item.id}>
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(23,52,81,0.06)]">
+                        <div className="flex items-start gap-3">
+                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-church-gold/10 text-church-gold">
+                            <CalendarIcon className="h-5 w-5" aria-hidden="true" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {item.pastorName && (
+                              <p className="text-xs font-bold uppercase tracking-[0.14em] text-church-gold">
+                                {item.pastorName}
+                              </p>
+                            )}
+                            {item.serviceType && (
+                              <p className="font-serif text-base font-semibold text-[#173451] leading-snug mt-0.5">
+                                {item.serviceType}
+                              </p>
+                            )}
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#173451]/65">
+                              {date && (
+                                <span className="flex items-center gap-1">
+                                  <CalendarIcon className="h-3.5 w-3.5 text-church-gold" aria-hidden="true" />
+                                  {date}
+                                </span>
+                              )}
+                              {timeStr && (
+                                <span className="flex items-center gap-1">
+                                  <ClockIcon className="h-3.5 w-3.5 text-church-gold" aria-hidden="true" />
+                                  {timeStr}
+                                </span>
+                              )}
+                              {item.pastorVillage && (
+                                <span className="flex items-center gap-1">
+                                  <MapPinIcon className="h-3.5 w-3.5 text-church-gold" aria-hidden="true" />
+                                  {item.pastorVillage}
+                                </span>
+                              )}
+                            </div>
+                            {item.notes && (
+                              <p className="mt-2 text-xs leading-relaxed text-[#334155]/70">{item.notes}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </StaggerItem>
+                  );
+                })}
+              </Stagger>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
