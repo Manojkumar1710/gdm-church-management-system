@@ -1,16 +1,30 @@
 import { Link } from 'react-router-dom';
+import {
+  MapPinIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  ArrowRightIcon,
+} from '@heroicons/react/24/outline';
 import Reveal from './motion/Reveal';
 import { CHURCH_NAME } from '../config/church';
 import { useLanguage } from '../context/LanguageContext';
 
 const QUICK_KEYS = [
+  ['nav.home',        '/'],
+  ['nav.about',       '/about'],
   ['nav.events',      '/events'],
   ['nav.photos',      '/photos'],
+  ['nav.pastors',     '/pastors'],
   ['nav.sermons',     '/sermons'],
+  ['nav.songs',       '/songs'],
   ['nav.gallery',     '/gallery'],
   ['nav.sundaySchool','/sunday-school'],
-  ['footer.prayerRequest', '/prayer'],
   ['nav.contact',     '/contact'],
+];
+
+const CONNECT_KEYS = [
+  ['footer.prayerRequest', '/prayer'],
+  ['nav.giveOffering',     '/offerings'],
 ];
 
 export default function Footer() {
@@ -20,50 +34,42 @@ export default function Footer() {
   return (
     <footer className="bg-navy-950 text-white" aria-label="Site footer">
 
-      {/* ── Main grid ─────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+      <div className="page-container pb-10 pt-16 sm:pt-20">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
 
-          {/* Brand column */}
-          <Reveal>
+          <Reveal className="lg:col-span-4">
             <div>
               <p
-                className="text-xl font-bold mb-4 flex items-center gap-2.5 text-white"
-                style={{ fontFamily: 'Lora, Georgia, serif' }}
+                className="mb-4 flex items-center gap-2.5 font-serif text-xl font-bold text-white"
               >
-                <span className="text-church-gold text-2xl">✝</span>
+                <span className="text-2xl text-church-gold">✝</span>
                 {CHURCH_NAME}
               </p>
-              <p className="text-white/55 text-sm leading-relaxed max-w-xs">
+              <p className="max-w-xs text-sm leading-relaxed text-white/60">
                 {t('footer.tagline')}
               </p>
 
               <Link
                 to="/offerings"
-                className="mt-6 inline-flex items-center gap-2 btn-gold btn-sm rounded-xl"
+                className="btn-gold mt-6 h-11 px-5"
               >
-                {t('nav.giveOffering')}
+                {t('nav.giveOffering')} <ArrowRightIcon className="h-4 w-4" />
               </Link>
             </div>
           </Reveal>
 
-          {/* Quick links */}
-          <Reveal delay={0.08}>
+          <Reveal delay={0.08} className="lg:col-span-3">
             <div>
-              <h3 className="font-semibold text-church-gold text-xs uppercase tracking-widest mb-5">
-                {t('footer.quickLinks')}
-              </h3>
-              <ul className="space-y-3">
+              <h3 className="section-label">{t('footer.quickLinks')}</h3>
+              <ul className="space-y-2.5">
                 {QUICK_KEYS.map(([key, to]) => (
                   <li key={to}>
                     <Link
                       to={to}
-                      className="text-white/55 text-sm hover:text-white transition-colors
-                                 flex items-center gap-2 group"
+                      className="group flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white"
                     >
                       <span
-                        className="text-church-gold/50 group-hover:text-church-gold
-                                   transition-colors text-xs"
+                        className="text-xs text-church-gold/50 transition-colors group-hover:text-church-gold"
                         aria-hidden="true"
                       >
                         ›
@@ -76,61 +82,71 @@ export default function Footer() {
             </div>
           </Reveal>
 
-          {/* Contact */}
-          <Reveal delay={0.16}>
+          <Reveal delay={0.16} className="lg:col-span-2">
             <div>
-              <h3 className="font-semibold text-church-gold text-xs uppercase tracking-widest mb-5">
-                {t('footer.connectWith')}
-              </h3>
+              <h3 className="section-label">{t('home.howServe')}</h3>
+              <ul className="space-y-2.5">
+                {CONNECT_KEYS.map(([key, to]) => (
+                  <li key={to}>
+                    <Link
+                      to={to}
+                      className="text-sm text-white/60 transition-colors hover:text-white"
+                    >
+                      {t(key)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
 
-              <ul className="space-y-3 text-sm text-white/55">
+              <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3.5">
+                <p className="text-sm font-semibold text-white/85">
+                  {t('footer.sundayService')}
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  {t('footer.everySunday')}
+                </p>
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.24} className="lg:col-span-3">
+            <div>
+              <h3 className="section-label">{t('footer.connectWith')}</h3>
+              <ul className="space-y-3.5 text-sm text-white/60">
                 <li className="flex items-start gap-2.5">
-                  <span className="mt-0.5 shrink-0" aria-hidden="true">📍</span>
+                  <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-church-gold" aria-hidden="true" />
                   <span>GDM Church, Chopparamma Gudem,<br />Koyyalagudem — 534312</span>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <span aria-hidden="true">📞</span>
+                  <PhoneIcon className="h-4 w-4 shrink-0 text-church-gold" aria-hidden="true" />
                   <a
                     href="tel:9494154193"
-                    className="hover:text-white transition-colors"
+                    className="transition-colors hover:text-white"
                   >
                     9494154193
                   </a>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <span aria-hidden="true">✉️</span>
+                  <EnvelopeIcon className="h-4 w-4 shrink-0 text-church-gold" aria-hidden="true" />
                   <a
                     href="mailto:Gdmchrg@gmail.com"
-                    className="hover:text-white transition-colors break-all"
+                    className="break-all transition-colors hover:text-white"
                   >
                     Gdmchrg@gmail.com
                   </a>
                 </li>
               </ul>
-
-              {/* Service time chip */}
-              <div className="mt-6 inline-flex items-center gap-2.5 px-4 py-2.5
-                              bg-white/5 border border-white/10 rounded-xl text-sm">
-                <span className="text-church-gold text-base" aria-hidden="true">🕊</span>
-                <div>
-                  <p className="font-semibold text-white/80 leading-tight">{t('footer.sundayService')}</p>
-                  <p className="text-white/45 text-xs">{t('footer.everySunday')}</p>
-                </div>
-              </div>
             </div>
           </Reveal>
         </div>
       </div>
 
-      {/* ── Bottom bar ──────────────────────────────────── */}
-      <div className="border-t border-white/8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4
-                        flex flex-col sm:flex-row items-center justify-between
-                        gap-2 text-xs text-white/30">
+      <div className="border-t border-white/10">
+        <div className="page-container flex flex-col gap-2 py-5 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
           <span>© {year} {CHURCH_NAME}. {t('footer.rights')}</span>
           <Link
             to="/admin/login"
-            className="hover:text-white/60 transition-colors"
+            className="transition-colors hover:text-white/80"
           >
             {t('footer.adminLogin')}
           </Link>

@@ -16,6 +16,7 @@
     background-color: #fdfaf3;
     @apply text-gray-800;
     font-family: 'Inter', 'Noto Sans Telugu', system-ui, sans-serif;
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Lora', Georgia, serif;
@@ -94,6 +95,22 @@
     transform: scale(0.97);
   }
 
+  .btn-outline-navy {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl
+           border border-church-blue px-5 text-sm font-semibold text-church-blue
+           transition-colors duration-200
+           hover:bg-church-blue hover:text-white
+           focus:outline-none focus:ring-2 focus:ring-church-blue focus:ring-offset-2;
+  }
+
+  .btn-outline-light {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl
+           border border-white/45 px-5 text-sm font-semibold text-white
+           transition-colors duration-200
+           hover:border-white hover:bg-white/10
+           focus:outline-none focus:ring-2 focus:ring-church-gold focus:ring-offset-2;
+  }
+
   /* ══ CARDS ══════════════════════════════════════════════════
    * Two variants:
    *   .card        — white on light background (cream/white sections)
@@ -145,6 +162,38 @@
   /* Admin card — compact, rounded-2xl */
   .card-flat {
     @apply bg-white rounded-2xl border border-church-border overflow-hidden;
+  }
+
+  /* ══ PUBLIC SECTION PRIMITIVES ══════════════════════════════ */
+  .page-container { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .section-pad    { @apply py-14 sm:py-20 lg:py-24; }
+
+  .section-label {
+    @apply mb-3 text-xs font-bold uppercase tracking-[0.18em] text-church-gold;
+  }
+  .section-title {
+    @apply font-bold leading-tight text-church-blue;
+    font-family: 'Lora', Georgia, serif;
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  }
+  .section-title--light { @apply text-white; }
+  .section-copy { @apply text-sm leading-relaxed text-gray-500; }
+
+  .surface-card {
+    @apply rounded-2xl border border-church-border bg-white shadow-card;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1),
+                box-shadow 300ms cubic-bezier(0.22,1,0.36,1);
+  }
+  .surface-card:hover {
+    transform: translateY(-3px);
+    @apply shadow-card-hover;
+  }
+
+  .hero-section      { min-height: 100vh; min-height: 100svh; }
+  .hero-section__inner { min-height: inherit; }
+  .hero-photo { background-position: 62% center; }
+  @media (min-width: 1024px) {
+    .hero-photo { background-position: center right; }
   }
 
   /* ══ SECTION HEADERS ════════════════════════════════════════ */

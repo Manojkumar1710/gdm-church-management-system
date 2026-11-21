@@ -1,112 +1,219 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { sermonService, youtubeService } from '../services/sermonService';
 import { CardSkeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
-import SectionHeader from '../components/SectionHeader';
-import CrossDivider from '../components/ornaments/CrossDivider';
+import Reveal from '../components/motion/Reveal';
+import Stagger, { StaggerItem } from '../components/motion/Stagger';
+import AnimatedText from '../components/motion/AnimatedText';
 import { getYoutubeId, getYoutubeThumbnail, getYoutubeEmbed } from '../utils/youtube';
-import { BookOpenIcon, PlayIcon } from '@heroicons/react/24/outline';
+import {
+  BookOpenIcon,
+  CalendarIcon,
+  MagnifyingGlassIcon,
+  PlayIcon,
+  UserIcon,
+  VideoCameraIcon,
+} from '@heroicons/react/24/outline';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useLanguage } from '../context/LanguageContext';
+import { localized } from '../utils/localized';
 
-/* ── YouTube thumbnail with fallback ──────────────────────────── */
-function YTThumb({ url, title, fallbackThumb }) {
+const EASE = [0.22, 1, 0.36, 1];
+const PAGE_SIZE = 6;
+
+function formatDate(value, dateLocale) {
+  if (!value) return '';
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function HeroDivider({ reduced }) {
+  return (
+    <motion.div
+      className="mt-6 flex items-center justify-center gap-3"
+      aria-hidden="true"
+      initial={reduced ? false : { opacity: 0, scaleX: 0.7 }}
+      animate={{ opacity: 1, scaleX: 1 }}
+      transition={{ duration: 0.7, delay: 0.28, ease: EASE }}
+    >
+      <span className="h-px w-14 bg-church-gold/60 sm:w-20" />
+      <span className="relative h-4 w-4">
+        <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-church-gold" />
+        <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-church-gold" />
+      </span>
+      <span className="h-px w-14 bg-church-gold/60 sm:w-20" />
+    </motion.div>
+  );
+}
+
+function YTThumb({ url, title, fallbackThumb, t }) {
   const embed = getYoutubeEmbed(url);
   const thumb = fallbackThumb || getYoutubeThumbnail(url);
 
   const [showEmbed, setShowEmbed] = useState(false);
-  const [imgError,  setImgError]  = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   if (showEmbed && embed) {
     return (
-      <iframe
-        src={embed}
-        className="w-full h-44"
-        title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
+      <div className="aspect-video w-full overflow-hidden bg-church-blue">
+        <iframe
+          src={embed}
+          className="h-full w-full"
+          title={title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
     );
   }
 
   return (
     <button
       onClick={() => embed ? setShowEmbed(true) : window.open(url, '_blank')}
-      className="relative w-full h-44 overflow-hidden group bg-church-blue"
-      aria-label={`Play ${title}`}
+      className="group relative block aspect-video w-full overflow-hidden bg-church-blue"
+      aria-label={`${t('common.play')} ${title}`}
     >
       {thumb && !imgError ? (
         <img
           src={thumb}
           alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={() => setImgError(true)}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-church-blue">
-          <BookOpenIcon className="h-12 w-12 text-white/20" />
+        <div className="absolute inset-0 flex items-center justify-center bg-church-blue">
+          <BookOpenIcon className="h-12 w-12 text-white/20" aria-hidden="true" />
         </div>
       )}
-      <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">
-        <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center group-hover:bg-red-600 transition-colors shadow-lg">
-          <PlayIcon className="h-6 w-6 text-white ml-0.5" />
-        </div>
-      </div>
+      <span className="absolute inset-0 flex items-center justify-center bg-church-blue/10 transition-colors group-hover:bg-church-blue/20">
+        <span className="grid h-12 w-12 place-items-center rounded-full border border-church-gold/60 bg-church-blue/85 text-church-gold shadow-lg transition-colors group-hover:bg-church-gold group-hover:text-church-blue">
+          <PlayIcon className="ml-0.5 h-5 w-5" aria-hidden="true" />
+        </span>
+      </span>
     </button>
   );
 }
 
-/* ── Sermon card ───────────────────────────────────────────────── */
-function SermonCard({ s, t }) {
+function SermonCard({ s, t, dateLocale, lang }) {
   const hasVideo = Boolean(s.videoUrl && getYoutubeId(s.videoUrl));
+  const title = localized(s, 'title', lang);
+  const speaker = localized(s, 'speaker', lang);
+  const description = localized(s, 'description', lang);
+
   return (
-    <div className="card flex flex-col overflow-hidden">
-      {s.videoUrl
-        ? <YTThumb url={s.videoUrl} title={s.title} fallbackThumb={s.thumbnailUrl} />
-        : s.thumbnailUrl
-          ? <img src={s.thumbnailUrl} alt={s.title} className="w-full h-44 object-cover" loading="lazy" />
-          : <div className="w-full h-44 bg-church-blue flex items-center justify-center"><BookOpenIcon className="h-12 w-12 text-white/20" /></div>
-      }
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{s.title}</h3>
-        <p className="text-xs text-gray-500">{[s.speaker, s.sermonDate].filter(Boolean).join(' · ')}</p>
-        {s.description && <p className="text-sm text-gray-600 mt-2 line-clamp-2">{s.description}</p>}
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white/85 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0">
+      {s.videoUrl ? (
+        <YTThumb url={s.videoUrl} title={title} fallbackThumb={s.thumbnailUrl} t={t} />
+      ) : s.thumbnailUrl ? (
+        <div className="aspect-video w-full overflow-hidden bg-church-blue">
+          <img src={s.thumbnailUrl} alt={title} loading="lazy" className="h-full w-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex aspect-video w-full items-center justify-center bg-church-blue">
+          <BookOpenIcon className="h-12 w-12 text-white/20" aria-hidden="true" />
+        </div>
+      )}
+
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue">
+          {title}
+        </h3>
+
+        <div className="mt-3 space-y-1.5 text-xs text-church-blue/60">
+          {s.speaker && (
+            <p className="flex items-center gap-1.5">
+              <UserIcon className="h-3.5 w-3.5 shrink-0 text-church-gold" aria-hidden="true" />
+              {speaker}
+            </p>
+          )}
+          {s.sermonDate && (
+            <p className="flex items-center gap-1.5">
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-church-gold" aria-hidden="true" />
+              {formatDate(s.sermonDate, dateLocale)}
+            </p>
+          )}
+        </div>
+
+        {description && (
+          <p className="mt-4 line-clamp-2 text-sm leading-7 text-church-blue/70">
+            {description}
+          </p>
+        )}
+
         {s.videoUrl && !hasVideo && (
-          <a href={s.videoUrl} target="_blank" rel="noopener noreferrer"
-             className="mt-3 text-xs text-church-blue font-medium hover:underline">
+          <a
+            href={s.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-auto pt-5 text-xs font-semibold text-church-blue hover:underline"
+          >
             {t('common.watchOnYoutube')}
           </a>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 
-/* ── YouTube video card ────────────────────────────────────────── */
-function VideoCard({ v, t }) {
+function VideoCard({ v, t, dateLocale, lang }) {
+  const title = localized(v, 'title', lang);
+  const category = localized(v, 'category', lang);
+  const description = localized(v, 'description', lang);
+
   return (
-    <div className="card flex flex-col overflow-hidden">
-      <YTThumb url={v.youtubeUrl} title={v.title} fallbackThumb={v.thumbnailUrl} />
-      <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{v.title}</h3>
-        {v.category && (
-          <span className="badge bg-blue-50 text-blue-600 text-xs w-fit mb-2">{v.category}</span>
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white/85 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0">
+      <YTThumb url={v.youtubeUrl} title={title} fallbackThumb={v.thumbnailUrl} t={t} />
+
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-church-blue">
+          {title}
+        </h3>
+
+        <div className="mt-3 space-y-1.5 text-xs text-church-blue/60">
+          {v.category && (
+            <p className="flex items-center gap-1.5">
+              <VideoCameraIcon className="h-3.5 w-3.5 shrink-0 text-church-gold" aria-hidden="true" />
+              {category}
+            </p>
+          )}
+          {v.publishedDate && (
+            <p className="flex items-center gap-1.5">
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-church-gold" aria-hidden="true" />
+              {formatDate(v.publishedDate, dateLocale)}
+            </p>
+          )}
+        </div>
+
+        {description && (
+          <p className="mt-4 line-clamp-2 text-sm leading-7 text-church-blue/70">
+            {description}
+          </p>
         )}
-        {v.description && <p className="text-sm text-gray-500 line-clamp-2">{v.description}</p>}
-        <a href={v.youtubeUrl} target="_blank" rel="noopener noreferrer"
-           className="mt-auto pt-3 text-xs text-gray-400 hover:text-church-blue transition-colors">
+
+        <a
+          href={v.youtubeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-auto pt-5 text-xs font-semibold text-church-blue hover:underline"
+        >
           {t('common.openOnYoutube')}
         </a>
       </div>
-    </div>
+    </article>
   );
 }
 
-/* ── Page ──────────────────────────────────────────────────────── */
 export default function SermonsPage() {
-  const { t } = useLanguage();
+  const { t, dateLocale, lang } = useLanguage();
+  const reduced = useReducedMotion();
   const [sermons, setSermons] = useState([]);
-  const [videos,  setVideos]  = useState([]);
-  const [tab,     setTab]     = useState('sermons');
+  const [videos, setVideos] = useState([]);
+  const [tab, setTab] = useState('sermons');
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -115,58 +222,156 @@ export default function SermonsPage() {
       youtubeService.list(0, 20),
     ]).then(([sRes, yRes]) => {
       if (sRes.status === 'fulfilled') setSermons(sRes.value.data.data?.content || []);
-      if (yRes.status === 'fulfilled') setVideos(yRes.value.data.data?.content  || []);
+      if (yRes.status === 'fulfilled') setVideos(yRes.value.data.data?.content || []);
     }).finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [tab, query]);
+
+  const source = tab === 'sermons' ? sermons : videos;
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return source;
+    return source.filter(item => [
+      localized(item, 'title', lang),
+      localized(item, 'speaker', lang),
+      localized(item, 'category', lang),
+      localized(item, 'description', lang),
+    ]
+      .filter(Boolean)
+      .some(value => String(value).toLowerCase().includes(term)));
+  }, [source, query, lang]);
+
   const tabs = [
-    { key: 'sermons',  label: t('sermons.tabSermons'), count: sermons.length },
-    { key: 'youtube',  label: t('sermons.tabYoutube'), count: videos.length  },
+    { key: 'sermons', label: t('sermons.tabSermonsLabel'), count: sermons.length },
+    { key: 'youtube', label: t('sermons.tabYoutubeLabel'), count: videos.length },
   ];
+  const visible = filtered.slice(0, visibleCount);
+  const hasQuery = query.trim().length > 0;
 
   return (
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16">
-      <SectionHeader title={t('sermons.title')} subtitle={t('sermons.subtitle')} />
+    <div className="min-h-screen bg-church-cream">
+      <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-church-gold">
+            <AnimatedText text={t('sermons.heroEyebrow')} lang={lang} inline />
+          </p>
 
-      <CrossDivider className="mb-8" opacity={0.3} />
+          <h1 className="mt-4 font-serif text-3xl font-bold leading-tight text-church-blue sm:text-4xl lg:text-5xl">
+            <AnimatedText text={t('sermons.title')} lang={lang} />
+          </h1>
 
-      {/* Tab switcher */}
-      <div className="flex gap-2 justify-center mb-10 bg-gray-100 rounded-2xl p-1.5 max-w-sm mx-auto">
-        {tabs.map(tabItem => (
-          <button
-            key={tabItem.key}
-            onClick={() => setTab(tabItem.key)}
-            className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-              tab === tabItem.key
-                ? 'bg-white text-church-blue shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+          <motion.p
+            className="mx-auto mt-4 max-w-2xl text-sm leading-8 text-church-blue/70 sm:text-base"
+            initial={reduced ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.18, ease: EASE }}
           >
-            {tabItem.label}
-            {!loading && tabItem.count > 0 && (
-              <span className="ml-1.5 text-xs text-gray-400">({tabItem.count})</span>
-            )}
-          </button>
-        ))}
-      </div>
+            {t('sermons.heroSubtitle')}
+          </motion.p>
 
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {[1,2,3].map(i => <CardSkeleton key={i} />)}
+          <HeroDivider reduced={reduced} />
         </div>
-      ) : tab === 'sermons' ? (
-        sermons.length === 0
-          ? <EmptyState icon={BookOpenIcon} title={t('sermons.noSermons')} message={t('sermons.sermonsHere')} />
-          : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {sermons.map(s => <SermonCard key={s.id} s={s} t={t} />)}
-            </div>
-      ) : (
-        videos.length === 0
-          ? <EmptyState title={t('sermons.noVideos')} message={t('sermons.videosHere')} />
-          : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {videos.map(v => <VideoCard key={v.id} v={v} t={t} />)}
-            </div>
-      )}
+      </section>
+
+      <main className="mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
+        <div className="mx-auto mb-10 flex w-full max-w-3xl flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <div className="flex w-full justify-center gap-1 rounded-2xl border border-church-gold/20 bg-white/80 p-1 shadow-card backdrop-blur-sm sm:w-auto">
+            {tabs.map(item => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  setTab(item.key);
+                  setQuery('');
+                }}
+                aria-pressed={tab === item.key}
+                className={`relative rounded-xl px-5 py-2.5 pb-3 text-sm font-semibold transition-all duration-200 ${
+                  tab === item.key
+                    ? 'bg-white text-church-blue shadow-card ring-1 ring-church-gold/40'
+                    : 'text-church-blue/60 hover:bg-church-gold/10 hover:text-church-blue'
+                }`}
+              >
+                {item.label}
+                {!loading && item.count > 0 && (
+                  <span className="ml-1.5 text-xs text-church-gold">({item.count})</span>
+                )}
+                {tab === item.key && (
+                  <span className="absolute inset-x-5 bottom-1.5 h-0.5 rounded-full bg-church-gold" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <label className="relative block w-full sm:max-w-xs">
+            <span className="sr-only">{t('sermons.searchLabel')}</span>
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-church-gold" />
+            <input
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder={t('sermons.searchPlaceholder')}
+              className="w-full rounded-2xl border border-church-gold/20 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-church-blue shadow-card outline-none transition placeholder:text-church-blue/35 focus:border-church-gold/60 focus:ring-2 focus:ring-church-gold/20"
+            />
+          </label>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map(i => <CardSkeleton key={i} />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="mx-auto max-w-2xl rounded-3xl border border-church-gold/20 bg-white/80 shadow-card">
+            {hasQuery ? (
+              <EmptyState
+                icon={tab === 'sermons' ? BookOpenIcon : VideoCameraIcon}
+                title={tab === 'sermons' ? t('sermons.noMatchingSermons') : t('sermons.noMatchingVideos')}
+                message={tab === 'sermons' ? t('sermons.tryDifferentPreacher') : t('sermons.tryDifferentTerm')}
+              />
+            ) : tab === 'sermons' ? (
+              <EmptyState
+                icon={BookOpenIcon}
+                title={t('sermons.noSermons')}
+                message={t('sermons.sermonsHere')}
+              />
+            ) : (
+              <EmptyState
+                icon={VideoCameraIcon}
+                title={t('sermons.noVideos')}
+                message={t('sermons.videosHere')}
+              />
+            )}
+          </div>
+        ) : (
+          <>
+            <Stagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" staggerDelay={0.07}>
+              {visible.map(item => (
+                <StaggerItem key={item.id} className="h-full">
+                  {tab === 'sermons' ? (
+                    <SermonCard s={item} t={t} dateLocale={dateLocale} lang={lang} />
+                  ) : (
+                    <VideoCard v={item} t={t} dateLocale={dateLocale} lang={lang} />
+                  )}
+                </StaggerItem>
+              ))}
+            </Stagger>
+
+            {visibleCount < filtered.length && (
+              <div className="mt-10 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount(count => count + PAGE_SIZE)}
+                  className="rounded-full border border-church-gold px-7 py-3 text-sm font-semibold text-church-blue transition-all duration-200 hover:bg-church-gold hover:text-white focus:outline-none focus:ring-2 focus:ring-church-gold/40"
+                >
+                  {t('common.loadMore')}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }

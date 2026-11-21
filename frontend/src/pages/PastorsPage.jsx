@@ -1,246 +1,312 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { pastorService } from '../services/pastorService';
 import { PastorCardSkeleton } from '../components/Skeleton';
-import EmptyState from '../components/EmptyState';
-import SectionHeader from '../components/SectionHeader';
 import Reveal from '../components/motion/Reveal';
-import { StaggerItem } from '../components/motion/Stagger';
-import { UserGroupIcon, MapPinIcon, PhoneIcon, CalendarIcon } from '@heroicons/react/24/outline';
-import CrossDivider from '../components/ornaments/CrossDivider';
+import Stagger, { StaggerItem } from '../components/motion/Stagger';
+import AnimatedText from '../components/motion/AnimatedText';
+import { MapPinIcon, PhoneIcon } from '@heroicons/react/24/outline';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useLanguage } from '../context/LanguageContext';
+import { localized } from '../utils/localized';
+import doveImg from '../assets/images/dove.png';
 
-/* ── Pastor card ─────────────────────────────────────────────── */
-function PastorCard({ p, t }) {
+const EASE = [0.22, 1, 0.36, 1];
+
+const PASTORS_STYLES = `
+.pastors-page .pastor-card {
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), 
+              box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pastors-page .pastor-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 48px rgba(23, 52, 81, 0.14);
+  border-color: rgba(201, 168, 76, 0.35);
+}
+.pastors-page .pastor-photo {
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pastors-page .pastor-card:hover .pastor-photo {
+  transform: scale(1.05);
+}
+.pastors-page .gold-divider {
+  animation: goldGlow 3s ease-in-out infinite;
+}
+.pastors-page .word-animated {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(10px);
+  white-space: pre;
+}
+.pastors-page .word-reveal.is-visible .word-animated {
+  animation: wordRevealAnim 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes goldGlow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+@keyframes wordRevealAnim {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pastors-page .pastor-card,
+  .pastors-page .pastor-photo,
+  .pastors-page .gold-divider,
+  .pastors-page .word-animated {
+    transition: none !important;
+    animation: none !important;
+  }
+  .pastors-page .word-animated {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .pastors-page .pastor-card:hover {
+    transform: none !important;
+  }
+  .pastors-page .pastor-card:hover .pastor-photo {
+    transform: none !important;
+  }
+}
+`;
+
+function GoldDivider({ className = '' }) {
   return (
-    <div className="card p-6 text-center flex flex-col items-center max-w-sm w-full">
-      {p.photoUrl ? (
-        <img
-          src={p.photoUrl}
-          alt={p.name}
-          className="w-32 h-32 rounded-full object-cover mb-5 avatar-glow"
-          loading="lazy"
-          width={128}
-          height={128}
-        />
-      ) : (
-        <div
-          className="w-32 h-32 rounded-full bg-church-blue flex items-center justify-center
-                     text-white text-4xl font-bold mb-5 avatar-glow select-none"
-          aria-hidden="true"
-        >
-          {p.name.charAt(0)}
-        </div>
-      )}
-
-      <span className="text-church-gold text-xs font-semibold uppercase tracking-widest mb-1">
-        {t('pastors.pastor')}
-      </span>
-
-      <h3
-        className="text-lg font-bold text-church-blue leading-tight mb-2"
-        style={{ fontFamily: 'Lora, Georgia, serif' }}
-      >
-        {p.name}
-      </h3>
-
-      {p.village && (
-        <p className="flex items-center justify-center gap-1 text-sm text-gray-500 mb-3">
-          <MapPinIcon className="h-3.5 w-3.5 text-church-gold shrink-0" />
-          {p.village}
-        </p>
-      )}
-
-      {p.bio && (
-        <p className="text-sm text-gray-500 leading-relaxed line-clamp-3 mb-4">
-          {p.bio}
-        </p>
-      )}
-
-      <div className="mt-auto flex flex-wrap justify-center gap-2 pt-2">
-        {p.contactPublic && p.contactNumber && (
-          <a
-            href={`tel:${p.contactNumber}`}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full
-                       bg-church-blue/8 border border-church-blue/20 text-church-blue
-                       text-xs font-semibold hover:bg-church-blue hover:text-white
-                       transition-all duration-300"
-          >
-            <PhoneIcon className="h-3 w-3" />
-            {t('pastors.call')}
-          </a>
-        )}
-
-        <Link
-          to="/schedule"
-          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full
-                     bg-church-gold/10 border border-church-gold/25 text-church-gold
-                     text-xs font-semibold hover:bg-church-gold hover:text-white
-                     transition-all duration-300"
-        >
-          <CalendarIcon className="h-3 w-3" />
-          {t('pastors.viewSchedule')}
-        </Link>
-      </div>
+    <div className={`flex items-center justify-center gap-3 ${className}`} aria-hidden="true">
+      <span className="gold-divider h-px w-16 bg-church-gold/70" />
+      <span className="text-base leading-none text-church-gold">✦</span>
+      <span className="gold-divider h-px w-16 bg-church-gold/70" />
     </div>
   );
 }
 
-/* ── Formatted time (HH:mm → h:mm AM/PM) ────────────────────── */
-function fmtTime(t) {
-  if (!t) return '';
-  const [h, m] = t.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+function Eyebrow({ children, className = '' }) {
+  return (
+    <p className={`text-[11px] font-bold uppercase tracking-[0.24em] text-church-gold ${className}`}>
+      {children}
+    </p>
+  );
 }
 
-/* ── Main page ───────────────────────────────────────────────── */
-export default function PastorsPage() {
-  const { t, dateLocale } = useLanguage();
-  const [pastors,  setPastors]  = useState([]);
-  const [schedule, setSchedule] = useState([]);
-  const [loading,  setLoading]  = useState(true);
+function useInViewOnce(threshold = 0.2) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
-    Promise.allSettled([
-      pastorService.list(),
-      pastorService.getSchedule(),
-    ]).then(([pRes, sRes]) => {
-      if (pRes.status === 'fulfilled') setPastors(pRes.value.data.data || []);
-      if (sRes.status === 'fulfilled') setSchedule(sRes.value.data.data || []);
-    }).finally(() => setLoading(false));
+    const node = ref.current;
+    if (!node || inView) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        setInView(true);
+        observer.disconnect();
+      }
+    }, { threshold });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [inView, threshold]);
+
+  return [ref, inView];
+}
+
+function WordAnimatedText({ text, className = '', baseDelay = 0, stagger = 0.12 }) {
+  const [ref, inView] = useInViewOnce(0.15);
+  const words = useMemo(() => String(text).split(/(\s+)/).filter(Boolean), [text]);
+
+  let wordIndex = 0;
+  const content = words.map((word, index) => {
+    if (/^\s+$/.test(word)) {
+      return ' ';
+    }
+    const delay = baseDelay + wordIndex * stagger;
+    wordIndex += 1;
+    return (
+      <span
+        key={`word-${index}`}
+        className="word-animated"
+        style={{ animationDelay: `${delay.toFixed(3)}s` }}
+      >
+        {word}
+      </span>
+    );
+  });
+
+  return (
+    <span ref={ref} className={`word-reveal ${inView ? 'is-visible' : ''} ${className}`}>
+      {content}
+    </span>
+  );
+}
+
+function PastorCard({ pastor, t, lang }) {
+  const bio = localized(pastor, 'bio', lang);
+  const village = localized(pastor, 'village', lang);
+
+  return (
+    <article className="pastor-card flex h-full flex-col rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_12px_32px_rgba(23,52,81,0.08)] sm:p-8">
+      <div className="flex flex-col items-center text-center">
+        {pastor.photoUrl ? (
+          <div className="mb-5 overflow-hidden rounded-full border-[3px] border-church-gold/40 shadow-[0_0_0_8px_rgba(201,168,76,0.08)]">
+            <img
+              src={pastor.photoUrl}
+              alt={pastor.name}
+              className="pastor-photo h-28 w-28 object-cover"
+              loading="lazy"
+              width={112}
+              height={112}
+            />
+          </div>
+        ) : (
+          <div className="mb-5 grid h-28 w-28 place-items-center rounded-full border-[3px] border-church-gold/40 bg-[#173451] font-serif text-3xl font-bold text-white shadow-[0_0_0_8px_rgba(201,168,76,0.08)]">
+            {pastor.name.charAt(0)}
+          </div>
+        )}
+
+        <Eyebrow>{t('pastors.pastor')}</Eyebrow>
+        <h3 className="mt-2 font-serif text-xl font-bold leading-snug text-[#173451] sm:text-2xl">
+          {pastor.name}
+        </h3>
+
+        {village && (
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-[#173451]/60">
+            <MapPinIcon className="h-4 w-4 shrink-0 text-church-gold" aria-hidden="true" />
+            {village}
+          </p>
+        )}
+      </div>
+
+      {bio && (
+        <p className="mt-5 line-clamp-4 text-center text-sm leading-7 text-[#334155]">
+          {bio}
+        </p>
+      )}
+
+      {pastor.contactPublic && pastor.contactNumber && (
+        <div className="mt-auto flex justify-center pt-6">
+          <a
+            href={`tel:${pastor.contactNumber}`}
+            className="inline-flex items-center gap-2 rounded-xl border border-church-gold/40 bg-church-gold/10 px-5 py-2.5 text-sm font-semibold text-[#173451] transition-all duration-200 hover:bg-church-gold hover:text-white"
+          >
+            <PhoneIcon className="h-4 w-4" aria-hidden="true" />
+            {t('pastors.call')}
+          </a>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function EmptyStateSection({ t }) {
+  return (
+    <div className="mx-auto max-w-xl rounded-[1.75rem] border border-church-gold/20 bg-white px-8 py-14 text-center shadow-[0_12px_32px_rgba(23,52,81,0.08)]">
+      <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full bg-church-gold/10">
+        <img src={doveImg} alt="" className="h-12 w-12 object-contain opacity-80" aria-hidden="true" />
+      </div>
+      <h3 className="font-serif text-xl font-bold text-[#173451]">{t('pastors.noPastors')}</h3>
+      <p className="mt-3 text-sm leading-7 text-[#334155]">
+        Pastor profiles will appear here once added.
+      </p>
+    </div>
+  );
+}
+
+export default function PastorsPage() {
+  const { t, lang } = useLanguage();
+  const reduced = useReducedMotion();
+  const [pastors, setPastors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    pastorService.list()
+      .then(res => setPastors(res.data.data || []))
+      .catch(() => setPastors([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <div className="pastors-page min-h-screen bg-[#F7F5F0]">
+      <style>{PASTORS_STYLES}</style>
 
-      {/* ── Pastors grid ── */}
-      <Reveal>
-        <SectionHeader
-          title={t('pastors.title')}
-          subtitle={t('pastors.subtitle')}
-        />
-        <CrossDivider className="mb-4 mt-2" opacity={0.3} />
-      </Reveal>
-
-      {loading ? (
-        <div className="flex flex-wrap justify-center gap-6">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="w-full sm:w-72">
-              <PastorCardSkeleton />
+      {/* Hero Section */}
+      <section className="bg-[#F7F5F0] px-4 py-16 sm:px-6 sm:py-18 lg:px-8">
+        <div className="mx-auto max-w-4xl text-center">
+          <motion.div
+            initial={reduced ? false : { opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: EASE }}
+          >
+            <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-full bg-church-gold/15 shadow-[0_0_0_10px_rgba(201,168,76,0.08)]">
+              <img src={doveImg} alt="" className="h-10 w-10 object-contain" aria-hidden="true" />
             </div>
-          ))}
-        </div>
-      ) : pastors.length === 0 ? (
-        <EmptyState
-          icon={UserGroupIcon}
-          title={t('pastors.noPastors')}
-          message={t('pastors.pastorsHere')}
-        />
-      ) : (
-        <div className="flex flex-wrap justify-center gap-6">
-          {pastors.map((p) => (
-            <StaggerItem
-              key={p.id}
-              className="w-full sm:w-80"
-            >
-              <PastorCard p={p} t={t} />
-            </StaggerItem>
-          ))}
-        </div>
-      )}
+          </motion.div>
 
-      {/* ── Service Schedule ── */}
-      {schedule.length > 0 && (
-        <div className="mt-20">
-          <Reveal>
-            <SectionHeader
-              title={t('pastors.serviceSchedule')}
-              subtitle={t('pastors.scheduleSubtitle')}
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: EASE }}
+          >
+            <Eyebrow className="text-center">
+              <WordAnimatedText text="SHEPHERDS OF FAITH" baseDelay={0} stagger={0.12} />
+            </Eyebrow>
+          </motion.div>
+
+          <h1 className="mt-4 font-serif text-[1.55rem] font-bold leading-tight text-[#173451] sm:text-[1.95rem] lg:text-[2.25rem]">
+            <AnimatedText 
+              text={t('pastors.heroMainHeading')} 
+              lang={lang}
+              stagger={0.045}
             />
-          </Reveal>
+          </h1>
 
-          {/* Desktop table */}
-          <Reveal delay={0.05}>
-            <div className="hidden md:block overflow-x-auto rounded-2xl shadow-card border border-church-border">
-              <table className="w-full bg-white text-sm">
-                <thead>
-                  <tr className="bg-church-blue text-white">
-                    <th className="text-left px-5 py-3.5 font-semibold">{t('pastors.date')}</th>
-                    <th className="text-left px-5 py-3.5 font-semibold">{t('pastors.service')}</th>
-                    <th className="text-left px-5 py-3.5 font-semibold">{t('nav.pastors')}</th>
-                    <th className="text-left px-5 py-3.5 font-semibold">{t('pastors.village')}</th>
-                    <th className="text-left px-5 py-3.5 font-semibold">{t('pastors.time')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-church-border">
-                  {schedule.map(s => (
-                    <tr key={s.id} className="hover:bg-church-cream transition-colors duration-150">
-                      <td className="px-5 py-3.5 font-medium text-gray-800">
-                        {new Date(s.serviceDate + 'T00:00:00').toLocaleDateString(dateLocale, {
-                          day: 'numeric', month: 'short', year: 'numeric',
-                        })}
-                      </td>
-                      <td className="px-5 py-3.5 text-gray-600">{s.serviceType || t('pastors.sundayService')}</td>
-                      <td className="px-5 py-3.5 font-semibold text-church-blue">{s.pastorName}</td>
-                      <td className="px-5 py-3.5 text-gray-500">
-                        {s.pastorVillage && (
-                          <span className="flex items-center gap-1">
-                            <MapPinIcon className="h-3.5 w-3.5 text-church-gold shrink-0" />
-                            {s.pastorVillage}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-gray-500">
-                        {fmtTime(s.startTime)}
-                        {s.endTime ? ` – ${fmtTime(s.endTime)}` : ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <motion.p
+            className="mx-auto mt-5 max-w-2xl text-sm leading-8 text-[#334155] sm:text-base"
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: EASE }}
+          >
+            <WordAnimatedText 
+              text="Dedicated shepherds serving our congregation with faith, love and devotion." 
+              baseDelay={0.2} 
+              stagger={0.12} 
+            />
+          </motion.p>
 
-            {/* Mobile stacked cards */}
-            <div className="md:hidden space-y-3">
-              {schedule.map(s => (
-                <div
-                  key={s.id}
-                  className="card p-4 flex flex-col gap-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-church-blue text-sm">
-                      {new Date(s.serviceDate + 'T00:00:00').toLocaleDateString(dateLocale, {
-                        day: 'numeric', month: 'short', year: 'numeric',
-                      })}
-                    </span>
-                    <span className="badge bg-church-blue/10 text-church-blue text-xs">
-                      {s.serviceType || t('pastors.sundayService')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-gray-700 font-medium">
-                    <UserGroupIcon className="h-4 w-4 text-church-gold shrink-0" />
-                    {s.pastorName}
-                  </div>
-                  {s.pastorVillage && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <MapPinIcon className="h-3.5 w-3.5 text-church-gold shrink-0" />
-                      {s.pastorVillage}
-                    </div>
-                  )}
-                  {(s.startTime || s.endTime) && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <CalendarIcon className="h-3.5 w-3.5 text-church-gold shrink-0" />
-                      {fmtTime(s.startTime)}{s.endTime ? ` – ${fmtTime(s.endTime)}` : ''}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Reveal>
+          <motion.div
+            initial={reduced ? false : { opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ duration: 0.7, delay: 0.4, ease: EASE }}
+          >
+            <GoldDivider className="mt-7" />
+          </motion.div>
         </div>
-      )}
+      </section>
+
+      {/* Pastors Gallery Section */}
+      <section className="px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map(i => <PastorCardSkeleton key={i} />)}
+            </div>
+          ) : pastors.length === 0 ? (
+            <EmptyStateSection t={t} />
+          ) : (
+            <Stagger className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" staggerDelay={0.12}>
+              {pastors.map(pastor => (
+                <StaggerItem key={pastor.id} className="h-full">
+                  <PastorCard pastor={pastor} t={t} lang={lang} />
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
