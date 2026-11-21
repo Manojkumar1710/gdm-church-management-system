@@ -386,6 +386,15 @@ const translations = {
       fallbackMission:'Preaching the Gospel, nurturing believers and serving our community with grace and compassion.',
     },
 
+    // ── Sermon / Video Detail ────────────────────────────────
+    sermonDetail: {
+      backToSermons:  '← Back to Sermons',
+      about:          'About This Message',
+      notFound:       'Video Not Found',
+      notFoundMessage:'This sermon or video could not be found. It may have been removed.',
+      noEmbed:        'This video cannot be played directly. Click below to watch on YouTube.',
+    },
+
     // ── Admin ─────────────────────────────────────────────────
     admin: {
       dashboard:         'Dashboard',
@@ -990,6 +999,14 @@ const translations = {
       noMatchingVideos:'సరిపోయే వీడియోలు లేవు.',
       tryDifferentPreacher:'వేరే శీర్షిక లేదా బోధకుడితో ప్రయత్నించండి.',
       tryDifferentTerm:'వేరే పదంతో వెతకండి.',
+    },
+
+    sermonDetail: {
+      backToSermons:  '← ప్రసంగాలకు తిరిగి వెళ్ళండి',
+      about:          'ఈ సందేశం గురించి',
+      notFound:       'వీడియో కనుగొనబడలేదు',
+      notFoundMessage:'ఈ ప్రసంగం లేదా వీడియో కనుగొనబడలేదు. అది తొలగించబడి ఉండవచ్చు.',
+      noEmbed:        'ఈ వీడియోను నేరుగా ప్లే చేయడం సాధ్యం కాదు. YouTube లో చూడటానికి క్లిక్ చేయండి.',
     },
 
     songs: {

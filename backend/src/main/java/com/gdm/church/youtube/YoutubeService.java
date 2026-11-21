@@ -58,6 +58,14 @@ public class YoutubeService {
     }
 
     @Transactional(readOnly = true)
+    public YoutubeDto getById(Long id) {
+        return youtubeRepository.findById(id)
+                .filter(YoutubeVideo::isPublished)
+                .map(this::toDto)
+                .orElseThrow(() -> ApiException.notFound("YouTube video"));
+    }
+
+    @Transactional(readOnly = true)
     public PageResponse<YoutubeDto> adminList(int page, int size) {
         return new PageResponse<>(
                 youtubeRepository.findAllByOrderByPublishedDateDesc(PageRequest.of(page, size))

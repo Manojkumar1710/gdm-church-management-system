@@ -1,4 +1,4 @@
-import { Children, useEffect, useRef, useState } from 'react';
+import { Children, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { churchService } from '../services/churchService';
 import { eventService } from '../services/eventService';
@@ -736,7 +736,7 @@ function FeaturedSermonCard({ sermon, t, lang, dateLocale }) {
 
   return (
     <Link
-      to="/sermons"
+      to={`/sermons/${sermon.id}`}
       className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
     >
       <SermonVisual sermon={sermon} aspect="aspect-[16/9]" lang={lang} />
@@ -765,7 +765,7 @@ function CompactSermonCard({ sermon, lang, dateLocale }) {
 
   return (
     <Link
-      to="/sermons"
+      to={`/sermons/${sermon.id}`}
       className="home-card-hover group flex h-full flex-col overflow-hidden rounded-3xl border border-church-gold/20 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0"
     >
       <SermonVisual sermon={sermon} aspect="aspect-video" lang={lang} />
@@ -902,27 +902,37 @@ function PastorsSection({ pastors, t }) {
   );
 }
 
-function GalleryTile({ photo }) {
-  return (
-    <Link
-      to="/photos"
-      className="home-media-hover group relative overflow-hidden rounded-2xl bg-white shadow-card"
-    >
-      <img
-        src={photo.imageUrl}
-        alt={photo.title || 'Church photo'}
-        className="h-full w-full object-cover"
-        loading="lazy"
-        onError={fallbackImage}
-      />
-      <span className="absolute inset-0 bg-navy-950/0 transition-colors duration-300 group-hover:bg-navy-950/20" aria-hidden="true" />
-    </Link>
-  );
-}
-
 function GallerySection({ photos, loading, t }) {
   const { lang } = useLanguage();
-  const gallery = photos.slice(0, 5);
+  const gallery = photos.slice(0, 10); // show up to 10 in carousel
+  const trackRef = useRef(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+
+  const updateButtons = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanPrev(el.scrollLeft > 4);
+    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    updateButtons();
+    el.addEventListener('scroll', updateButtons, { passive: true });
+    const ro = new ResizeObserver(updateButtons);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', updateButtons); ro.disconnect(); };
+  }, [gallery, updateButtons]);
+
+  const scrollBy = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.querySelector('[data-gallery-card]');
+    const cardW = card ? card.offsetWidth + 16 : 300;
+    el.scrollBy({ left: dir * cardW, behavior: 'smooth' });
+  };
 
   return (
     <section className="section-pad bg-church-cream" aria-label="Church gallery">
@@ -940,9 +950,9 @@ function GallerySection({ photos, loading, t }) {
         />
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className={`animate-pulse rounded-2xl bg-gray-200 ${i === 1 ? 'col-span-2 row-span-2 min-h-[240px]' : 'min-h-[120px]'}`} />
+          <div className="flex gap-4 overflow-hidden">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-56 w-full shrink-0 animate-pulse rounded-2xl bg-gray-200 sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)]" />
             ))}
           </div>
         ) : gallery.length === 0 ? (
@@ -959,50 +969,56 @@ function GallerySection({ photos, loading, t }) {
             />
           </HomeAnim>
         ) : (
-          <HomeStagger
-            className="home-gallery grid grid-cols-2 gap-3 sm:grid-cols-4"
-            style={{ gridAutoRows: gallery.length > 1 ? undefined : '240px' }}
-            step={0.12}
-            duration={0.7}
-          >
-            {/* Always show up to 5 photos; layout adapts to count */}
-            {gallery.length === 1 && (
-              <div className="col-span-2 sm:col-span-4" style={{ height: '300px' }}>
-                <GalleryTile photo={gallery[0]} />
-              </div>
-            )}
-            {gallery.length >= 2 && gallery.length < 4 && (
-              <>
-                {gallery.map((photo, index) => (
-                  <div key={photo.id || index} className="col-span-2" style={{ height: '240px' }}>
-                    <GalleryTile photo={photo} />
-                  </div>
-                ))}
-              </>
-            )}
-            {gallery.length >= 4 && (
-              <>
-                <div className="col-span-2 row-span-2" style={{ height: '310px' }}>
-                  <GalleryTile photo={gallery[0]} />
-                </div>
-                {gallery.slice(1, 3).map((photo, index) => (
-                  <div key={photo.id || `g${index}`} style={{ height: '150px' }}>
-                    <GalleryTile photo={photo} />
-                  </div>
-                ))}
-                {gallery.length >= 5 && (
-                  <div className="col-span-2" style={{ height: '150px' }}>
-                    <GalleryTile photo={gallery[4]} />
-                  </div>
-                )}
-                {gallery.length === 4 && (
-                  <div className="col-span-2" style={{ height: '150px' }}>
-                    <GalleryTile photo={gallery[3]} />
-                  </div>
-                )}
-              </>
-            )}
-          </HomeStagger>
+          <div className="relative">
+            {/* Prev */}
+            <button
+              type="button"
+              onClick={() => scrollBy(-1)}
+              disabled={!canPrev}
+              aria-label="Previous photos"
+              className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full border border-church-gold/30 bg-white shadow-card transition-all duration-200 hover:border-church-gold hover:bg-church-gold hover:text-white disabled:pointer-events-none disabled:opacity-30 sm:-left-5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-church-blue"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+
+            {/* Next */}
+            <button
+              type="button"
+              onClick={() => scrollBy(1)}
+              disabled={!canNext}
+              aria-label="Next photos"
+              className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full border border-church-gold/30 bg-white shadow-card transition-all duration-200 hover:border-church-gold hover:bg-church-gold hover:text-white disabled:pointer-events-none disabled:opacity-30 sm:-right-5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-church-blue"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+
+            {/* Track */}
+            <div
+              ref={trackRef}
+              className="gdm-carousel-track flex gap-4 overflow-x-auto pb-2"
+              style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {gallery.map((photo, index) => (
+                <Link
+                  key={photo.id || index}
+                  to="/photos"
+                  data-gallery-card=""
+                  className="group relative h-56 w-[calc(100%-2rem)] shrink-0 overflow-hidden rounded-2xl bg-white shadow-card sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)] xl:w-[calc(25%-12px)]"
+                  style={{ scrollSnapAlign: 'start' }}
+                  aria-label={photo.title || 'Church photo'}
+                >
+                  <img
+                    src={photo.imageUrl}
+                    alt={photo.title || 'Church photo'}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    onError={fallbackImage}
+                  />
+                  <span className="absolute inset-0 bg-navy-950/0 transition-colors duration-300 group-hover:bg-navy-950/20" aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </section>

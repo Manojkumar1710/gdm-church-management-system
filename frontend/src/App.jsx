@@ -21,6 +21,8 @@ import OfferingsPage from './pages/OfferingsPage';
 import SundaySchoolPage from './pages/SundaySchoolPage';
 import SongList from './pages/SongList';
 import SongDetail from './pages/SongDetail';
+import SermonDetailPage from './pages/SermonDetailPage';
+import YoutubeDetailPage from './pages/YoutubeDetailPage';
 
 // Admin
 import LoginPage from './admin/LoginPage';
@@ -83,6 +85,8 @@ export default function App() {
             <Route path="/sunday-school/programs" element={<SundaySchoolPage />} />
             <Route path="/songs" element={<SongList />} />
             <Route path="/songs/:id" element={<SongDetail />} />
+            <Route path="/sermons/:id" element={<SermonDetailPage />} />
+            <Route path="/youtube/:id" element={<YoutubeDetailPage />} />
           </Route>
 
           {/* ── Admin auth ── */}

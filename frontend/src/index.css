@@ -467,3 +467,6 @@
 ::-webkit-scrollbar-track      { background: #f0f4fb; }
 ::-webkit-scrollbar-thumb      { background: #b9cde9; border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover{ background: #88a8d5; }
+
+/* Horizontal carousel tracks — hide scrollbar on all browsers */
+.gdm-carousel-track::-webkit-scrollbar { display: none; }

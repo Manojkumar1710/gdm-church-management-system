@@ -16,6 +16,7 @@ export const sermonService = {
 
 export const youtubeService = {
   list: (page = 0, size = 20) => api.get('/youtube', { params: { page, size } }),
+  getById: (id) => api.get(`/youtube/${id}`),
   adminList: (page = 0, size = 20) => api.get('/admin/youtube', { params: { page, size } }),
   create: (data) => api.post('/admin/youtube', data),
   update: (id, data) => api.put(`/admin/youtube/${id}`, data),

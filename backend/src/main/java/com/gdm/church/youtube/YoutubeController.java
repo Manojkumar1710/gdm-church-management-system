@@ -21,6 +21,11 @@ public class YoutubeController {
         return ResponseEntity.ok(ApiResponse.success(youtubeService.getPublished(page, size)));
     }
 
+    @GetMapping("/youtube/{id}")
+    public ResponseEntity<ApiResponse<YoutubeDto>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(youtubeService.getById(id)));
+    }
+
     @GetMapping("/admin/youtube")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<YoutubeDto>>> adminList(
